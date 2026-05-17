@@ -59,15 +59,12 @@ ssh lwt@47.112.7.97 "pm2 restart lwt-nginx"
 ssh lwt@47.112.7.97 "pm2 logs lwt-nginx"
 ```
 
-## 系统 nginx 配置恢复
+## 系统 nginx 配置
 
-系统 nginx 的 `/ddz` 代理配置可能被其他部署流程覆盖。
-备份文件位置：`/root/nginx-backup/default.ddz.bak`
+`/ddz` 代理配置在 `/etc/nginx/sites-available/default` 中，已用 `chattr +i` 锁定，
+**任何进程（包括 root）无法覆盖此文件**。
 
-恢复命令（需 root）：
-```
-cp /root/nginx-backup/default.ddz.bak /etc/nginx/sites-enabled/default && nginx -t && nginx -s reload
-```
+如需修改，先解锁：`chattr -i /etc/nginx/sites-available/default`，改完再加锁：`chattr +i /etc/nginx/sites-available/default`。
 
 ## 需求记录规则
 
