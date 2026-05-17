@@ -22,9 +22,9 @@
              :80 (系统 nginx)     → 其他 → 不受影响
 ```
 
-- **Node.js 服务**（lwt 用户）：端口 3000，`/home/lwt/ddz/server.js`
-- **lwt nginx**（lwt 用户）：端口 8080，`/home/lwt/nginx/conf/nginx.conf`
-- **系统 nginx**（root）：仅有 1 条 `/ddz/` → `localhost:8080` 代理，不影响其他站点
+- **Node.js 服务**（lwt 用户）：端口 3000，`/home/lwt/ddz/server.js`，PM2 管理
+- **lwt nginx**（lwt 用户）：端口 8081，`/home/lwt/nginx/conf/nginx.conf`，PM2 管理
+- **系统 nginx**（root）：`/ddz/` → `localhost:8081`，`chattr +i` 锁定防覆盖
 
 ## 热部署 & 回退
 
