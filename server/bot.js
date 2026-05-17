@@ -12,18 +12,14 @@ class BotStrategy {
   decideBid(currentBid) {
     const strength = this.evaluateHandStrength();
     let bid = 0;
-
     if (strength >= 75 && currentBid < 3) bid = 3;
     else if (strength >= 55 && currentBid < 2) bid = 2;
     else if (strength >= 30 && currentBid < 1) bid = 1;
-
-    // Must exceed current bid
     if (bid <= currentBid) {
       if (strength >= 60 && currentBid < 2) bid = 2;
       else if (strength >= 45 && currentBid < 3) bid = 3;
       else bid = 0;
     }
-
     return bid;
   }
 
@@ -31,74 +27,126 @@ class BotStrategy {
     const hand = this.player.hand;
     const groups = getRankGroups(hand);
     let score = 0;
-
-    // Jokers
     if (hand.includes(C.BIG_JOKER_ID)) score += 22;
     if (hand.includes(C.SMALL_JOKER_ID)) score += 16;
     if (hand.includes(C.BIG_JOKER_ID) && hand.includes(C.SMALL_JOKER_ID)) score += 8;
-
-    // Count rank 12 (=2) and rank 11 (=A) cards
     for (const id of hand) {
       const rank = getRank(id);
       if (rank === C.TWO) score += 5;
       else if (rank === C.ACE) score += 3;
       else if (rank === C.KING) score += 1;
     }
-
-    // Bombs
     score += groups.quads.length * 14;
-
-    // Hand structure
     score -= groups.singles.length;
     score += groups.pairs.length * 2;
     score += groups.triples.length * 4;
-
     return Math.min(100, Math.max(0, score));
   }
 
   // ── Playing ──────────────────────────────────────────────
 
-  // Returns { cardIds: number[] } or null (pass)
   decidePlay(lastPattern, myHandSize, opponentCardCounts) {
     const hand = this.player.hand;
     const groups = getRankGroups(hand);
 
     if (!lastPattern) {
-      return this.playSmallest();
+      return this.playAsLeader(groups, myHandSize);
+    }
+    return this.playAsFollower(lastPattern, groups, myHandSize, opponentCardCounts);
+  }
+
+  // ── Leading strategy ─────────────────────────────────────
+  // Priority: finish > straight > straight pairs > airplane > triple+wing > triple > pair > single
+
+  playAsLeader(groups, myHandSize) {
+    const hand = this.player.hand;
+
+    // 1) Try to finish in one play
+    const pattern = identifyPattern(hand);
+    if (pattern) {
+      return { cardIds: hand };
     }
 
-    // Try to beat with same pattern type
-    let beatCardIds = null;
-
-    switch (lastPattern.type) {
-      case 'single': beatCardIds = this.beatSingle(lastPattern.rank); break;
-      case 'pair': beatCardIds = this.beatPair(lastPattern.rank); break;
-      case 'triple': beatCardIds = this.beatTriple(lastPattern.rank); break;
-      case 'triple_plus_one': beatCardIds = this.beatTripleWithWing(lastPattern.rank, 1); break;
-      case 'triple_plus_two': beatCardIds = this.beatTripleWithWing(lastPattern.rank, 2); break;
-      case 'straight': beatCardIds = this.beatStraight(lastPattern.rank, lastPattern.length); break;
-      case 'straight_pairs': beatCardIds = this.beatStraightPairs(lastPattern.rank, lastPattern.length); break;
-      case 'bomb': beatCardIds = this.beatBomb(lastPattern.rank); break;
-      case 'rocket': return null; // can't beat rocket
-      case 'airplane':
-      case 'airplane_wing_single':
-      case 'airplane_wing_pair':
-      case 'four_plus_two_single':
-      case 'four_plus_two_pair':
-        beatCardIds = this.beatBomb(-1); // try bomb for complex patterns
-        break;
+    // 2) Try to finish in 2 plays: find a play that leaves a valid remainder
+    if (myHandSize <= 8) {
+      const combo = this.tryTwoShotFinish(hand, groups);
+      if (combo) return { cardIds: combo };
     }
 
-    if (beatCardIds) return { cardIds: beatCardIds };
+    // 3) Straight (5-12 cards) — reduces hand count significantly
+    const straight = this.findStraightLead(groups);
+    if (straight) return { cardIds: straight };
 
-    // Consider using bomb proactively
+    // 4) Straight pairs (3+ pairs)
+    const sp = this.findStraightPairsLead(groups);
+    if (sp) return { cardIds: sp };
+
+    // 5) Airplane or airplane with wings
+    const ap = this.findAirplaneLead(groups);
+    if (ap) return { cardIds: ap };
+
+    // 6) Triple + wing (三带一/三带二) — use singles as wings first
+    const tw = this.findTripleWithWingLead(groups);
+    if (tw) return { cardIds: tw };
+
+    // 7) Pure triple (if no better use for it)
+    if (groups.triples.length > 0 && groups.singles.length === 0 && groups.pairs.length === 0) {
+      return { cardIds: this.cardsOfRank(groups.triples[0], 3) };
+    }
+
+    // 8) Pair — play the smallest pair
+    if (groups.pairs.length > 0) {
+      return { cardIds: this.cardsOfRank(groups.pairs[0], 2) };
+    }
+
+    // 9) Single — play smallest
+    if (groups.singles.length > 0) {
+      return { cardIds: [this.cardOfRank(groups.singles[0])] };
+    }
+
+    if (hand.length > 0) return { cardIds: [hand[0]] };
+    return null;
+  }
+
+  // ── Following strategy ───────────────────────────────────
+
+  playAsFollower(lastPattern, groups, myHandSize, opponentCardCounts) {
+    const hand = this.player.hand;
     const minOpp = opponentCardCounts ? Math.min(...opponentCardCounts) : 99;
-    if (myHandSize <= 4 || minOpp <= 4 || myHandSize <= 6) {
+
+    // Try to beat with same pattern type (smallest possible)
+    let beatCards = null;
+    switch (lastPattern.type) {
+      case 'single':        beatCards = this.beatSingle(lastPattern.rank); break;
+      case 'pair':          beatCards = this.beatPair(lastPattern.rank); break;
+      case 'triple':        beatCards = this.beatTriple(lastPattern.rank); break;
+      case 'triple_plus_one':  beatCards = this.beatTripleWithWing(lastPattern.rank, 1); break;
+      case 'triple_plus_two':  beatCards = this.beatTripleWithWing(lastPattern.rank, 2); break;
+      case 'straight':      beatCards = this.beatStraight(lastPattern.rank, lastPattern.length); break;
+      case 'straight_pairs': beatCards = this.beatStraightPairs(lastPattern.rank, lastPattern.length); break;
+      case 'bomb':          beatCards = this.beatBomb(lastPattern.rank); break;
+      case 'rocket':        return null;
+      default: break;
+    }
+
+    if (beatCards) {
+      // Don't use 2s or jokers unless necessary or close to winning
+      const usesPremium = beatCards.some(id => getRank(id) >= C.TWO);
+      if (usesPremium && myHandSize > 4 && minOpp > 4) {
+        // Check if there's a cheaper alternative
+        const cheaper = this.findCheaperBeat(lastPattern, beatCards);
+        if (cheaper) beatCards = cheaper;
+      }
+      return { cardIds: beatCards };
+    }
+
+    // Use bomb if: I'm close to winning OR an opponent is close to winning
+    if (myHandSize <= 4 || minOpp <= 4 || (myHandSize <= 8 && minOpp <= 6)) {
       const bomb = this.beatBomb(-1);
       if (bomb) return { cardIds: bomb };
     }
 
-    // Check rocket as last resort
+    // Rocket as absolute last resort
     if (hand.includes(C.BIG_JOKER_ID) && hand.includes(C.SMALL_JOKER_ID)) {
       return { cardIds: [C.BIG_JOKER_ID, C.SMALL_JOKER_ID] };
     }
@@ -106,47 +154,129 @@ class BotStrategy {
     return null; // pass
   }
 
-  // ── Play helpers ─────────────────────────────────────────
+  // ── Leading helpers: find best combination ────────────────
 
-  playSmallest() {
-    const hand = this.player.hand;
-    const groups = getRankGroups(hand);
-
-    // Try to play smallest single (prefer 3, 4, 5... over high cards)
-    if (groups.singles.length > 0) {
-      const rank = groups.singles[0];
-      for (const id of hand) {
-        if (getRank(id) === rank) return { cardIds: [id] };
+  findStraightLead(groups) {
+    const singles = groups.singles.filter(r => r <= C.ACE);
+    if (singles.length < 5) return null;
+    // Find the longest consecutive run
+    let best = null;
+    for (let start = 0; start < singles.length; start++) {
+      let end = start;
+      while (end + 1 < singles.length && singles[end + 1] === singles[end] + 1) end++;
+      const len = end - start + 1;
+      if (len >= 5) {
+        const ranks = singles.slice(start, end + 1);
+        if (!best || ranks.length > best.length) best = ranks;
       }
     }
-    // Smallest pair
-    if (groups.pairs.length > 0) {
-      const rank = groups.pairs[0];
-      const cards = hand.filter(id => getRank(id) === rank).slice(0, 2);
-      return { cardIds: cards };
+    if (!best) return null;
+    const cards = [];
+    for (const r of best) cards.push(this.cardOfRank(r));
+    return cards;
+  }
+
+  findStraightPairsLead(groups) {
+    const allPairs = groups.pairs.filter(r => r <= C.ACE);
+    if (allPairs.length < 3) return null;
+    let best = null;
+    for (let start = 0; start < allPairs.length; start++) {
+      let end = start;
+      while (end + 1 < allPairs.length && allPairs[end + 1] === allPairs[end] + 1) end++;
+      const len = end - start + 1;
+      if (len >= 3) {
+        const ranks = allPairs.slice(start, end + 1);
+        if (!best || ranks.length > best.length) best = ranks;
+      }
     }
-    // Smallest triple
-    if (groups.triples.length > 0) {
-      const rank = groups.triples[0];
-      const cards = hand.filter(id => getRank(id) === rank).slice(0, 3);
-      return { cardIds: cards };
+    if (!best) return null;
+    const cards = [];
+    for (const r of best) {
+      const pairCards = this.cardsOfRank(r, 2);
+      cards.push(...pairCards);
     }
-    // Last card
-    if (hand.length > 0) return { cardIds: [hand[0]] };
+    return cards;
+  }
+
+  findAirplaneLead(groups) {
+    const allTriples = groups.triples.filter(r => r <= C.ACE);
+    if (allTriples.length < 2) return null;
+    let bestRun = null;
+    for (let start = 0; start < allTriples.length; start++) {
+      let end = start;
+      while (end + 1 < allTriples.length && allTriples[end + 1] === allTriples[end] + 1) end++;
+      const len = end - start + 1;
+      if (len >= 2) {
+        const ranks = allTriples.slice(start, end + 1);
+        if (!bestRun || ranks.length > bestRun.length) bestRun = ranks;
+      }
+    }
+    if (!bestRun) return null;
+
+    const cards = [];
+    for (const r of bestRun) cards.push(...this.cardsOfRank(r, 3));
+
+    // Try to add wings (singles or pairs)
+    const usedRanks = new Set(bestRun);
+    const availableSingles = groups.singles.filter(r => !usedRanks.has(r));
+    const availablePairs = groups.pairs.filter(r => !usedRanks.has(r));
+
+    if (availablePairs.length >= bestRun.length) {
+      for (let i = 0; i < bestRun.length; i++) {
+        cards.push(...this.cardsOfRank(availablePairs[i], 2));
+      }
+    } else if (availableSingles.length >= bestRun.length) {
+      for (let i = 0; i < bestRun.length; i++) {
+        cards.push(this.cardOfRank(availableSingles[i]));
+      }
+    }
+    return cards;
+  }
+
+  findTripleWithWingLead(groups) {
+    if (groups.triples.length === 0) return null;
+    const tripleRank = groups.triples[0];
+    const cards = [...this.cardsOfRank(tripleRank, 3)];
+
+    // Prefer using singles as wings (get rid of weak cards)
+    const usedRanks = new Set([tripleRank]);
+    const singles = groups.singles.filter(r => !usedRanks.has(r));
+    if (singles.length > 0) {
+      cards.push(this.cardOfRank(singles[0]));
+      return cards;
+    }
+    // Use pair as wing
+    const pairs = groups.pairs.filter(r => !usedRanks.has(r));
+    if (pairs.length > 0) {
+      cards.push(...this.cardsOfRank(pairs[0], 2));
+      return cards;
+    }
+    return cards; // pure triple
+  }
+
+  // ── Two-shot finish ──────────────────────────────────────
+
+  tryTwoShotFinish(hand, groups) {
+    // Try to split hand into 2 valid patterns
+    for (let i = 1; i < hand.length; i++) {
+      const first = hand.slice(0, i);
+      const second = hand.slice(i);
+      if (identifyPattern(first) && identifyPattern(second)) {
+        return first; // play the first part now
+      }
+    }
     return null;
   }
 
+  // ── Beat helpers ─────────────────────────────────────────
+
   beatSingle(targetRank) {
     const hand = this.player.hand;
-    // Find smallest single that beats targetRank
     let best = null;
     for (const id of hand) {
       const rank = getRank(id);
-      if (rank > targetRank) {
-        if (!best || rank < getRank(best)) best = id;
-      }
+      if (rank > targetRank && (!best || rank < getRank(best))) best = id;
     }
-    // Big joker beats everything (unless target is big joker already)
     if (!best && hand.includes(C.BIG_JOKER_ID) && targetRank < C.BIG_JOKER) {
       best = C.BIG_JOKER_ID;
     }
@@ -154,39 +284,22 @@ class BotStrategy {
   }
 
   beatPair(targetRank) {
-    const hand = this.player.hand;
-    // Get pairs by rank
-    const rankMap = new Map();
-    for (const id of hand) {
-      const rank = getRank(id);
-      if (!rankMap.has(rank)) rankMap.set(rank, []);
-      rankMap.get(rank).push(id);
-    }
-    let bestRank = Infinity;
-    let bestCards = null;
+    const rankMap = this.buildRankMap();
+    let bestRank = Infinity, bestCards = null;
     for (const [rank, cards] of rankMap) {
       if (cards.length >= 2 && rank > targetRank && rank < bestRank) {
-        bestRank = rank;
-        bestCards = cards.slice(0, 2);
+        bestRank = rank; bestCards = cards.slice(0, 2);
       }
     }
     return bestCards;
   }
 
   beatTriple(targetRank) {
-    const hand = this.player.hand;
-    const rankMap = new Map();
-    for (const id of hand) {
-      const rank = getRank(id);
-      if (!rankMap.has(rank)) rankMap.set(rank, []);
-      rankMap.get(rank).push(id);
-    }
-    let bestRank = Infinity;
-    let bestCards = null;
+    const rankMap = this.buildRankMap();
+    let bestRank = Infinity, bestCards = null;
     for (const [rank, cards] of rankMap) {
       if (cards.length >= 3 && rank > targetRank && rank < bestRank) {
-        bestRank = rank;
-        bestCards = cards.slice(0, 3);
+        bestRank = rank; bestCards = cards.slice(0, 3);
       }
     }
     return bestCards;
@@ -195,16 +308,11 @@ class BotStrategy {
   beatTripleWithWing(targetRank, wingSize) {
     const triple = this.beatTriple(targetRank);
     if (!triple) return null;
-
     const hand = this.player.hand;
     const tripleRank = getRank(triple[0]);
-
-    // Find wing cards (cards not of the triple rank)
     if (wingSize === 1) {
       for (const id of hand) {
-        if (getRank(id) !== tripleRank && !triple.includes(id)) {
-          return [...triple, id];
-        }
+        if (getRank(id) !== tripleRank && !triple.includes(id)) return [...triple, id];
       }
     } else if (wingSize === 2) {
       const rankMap = new Map();
@@ -222,76 +330,80 @@ class BotStrategy {
   }
 
   beatStraight(targetRank, length) {
-    const hand = this.player.hand;
-    const rankMap = new Map();
-    for (const id of hand) {
-      const rank = getRank(id);
-      if (rank > C.ACE) continue; // no 2 or jokers in straights
-      if (!rankMap.has(rank)) rankMap.set(rank, []);
-      rankMap.get(rank).push(id);
-    }
+    const rankMap = this.buildRankMap();
+    const candidates = [];
+    for (const [r] of rankMap) { if (r <= C.ACE) candidates.push(r); }
+    candidates.sort((a, b) => a - b);
 
-    for (let startRank = targetRank - length + 2; startRank <= C.ACE - length + 1; startRank++) {
-      if (startRank + length - 1 <= targetRank) continue;
-      const cards = [];
-      let ok = true;
-      for (let r = startRank; r < startRank + length; r++) {
-        if (!rankMap.has(r)) { ok = false; break; }
-        cards.push(rankMap.get(r)[0]);
-      }
-      if (ok) return cards;
+    for (let start = 0; start + length <= candidates.length; start++) {
+      const seg = candidates.slice(start, start + length);
+      if (seg[seg.length - 1] - seg[0] !== length - 1) continue;
+      if (seg[seg.length - 1] <= targetRank) continue;
+      return seg.map(r => rankMap.get(r)[0]);
     }
     return null;
   }
 
   beatStraightPairs(targetRank, pairCount) {
-    const hand = this.player.hand;
-    const rankMap = new Map();
-    for (const id of hand) {
-      const rank = getRank(id);
-      if (rank > C.ACE) continue;
-      if (!rankMap.has(rank)) rankMap.set(rank, []);
-      rankMap.get(rank).push(id);
-    }
-
+    const rankMap = this.buildRankMap();
     const pairRanks = [];
-    for (const [rank, cards] of rankMap) {
-      if (cards.length >= 2) pairRanks.push(rank);
+    for (const [r, cards] of rankMap) {
+      if (r <= C.ACE && cards.length >= 2) pairRanks.push(r);
     }
     pairRanks.sort((a, b) => a - b);
-
     for (let start = 0; start + pairCount <= pairRanks.length; start++) {
       const seg = pairRanks.slice(start, start + pairCount);
       if (seg[seg.length - 1] - seg[0] !== pairCount - 1) continue;
       if (seg[seg.length - 1] <= targetRank) continue;
       const cards = [];
-      for (const r of seg) {
-        cards.push(rankMap.get(r)[0], rankMap.get(r)[1]);
-      }
+      for (const r of seg) { cards.push(rankMap.get(r)[0], rankMap.get(r)[1]); }
       return cards;
     }
     return null;
   }
 
   beatBomb(targetRank) {
-    const hand = this.player.hand;
-    const rankMap = new Map();
-    for (const id of hand) {
-      const rank = getRank(id);
-      if (!rankMap.has(rank)) rankMap.set(rank, []);
-      rankMap.get(rank).push(id);
-    }
-
-    // Find smallest bomb that beats targetRank
-    let bestRank = Infinity;
-    let bestCards = null;
+    const rankMap = this.buildRankMap();
+    let bestRank = Infinity, bestCards = null;
     for (const [rank, cards] of rankMap) {
       if (cards.length === 4 && rank > targetRank && rank < bestRank) {
-        bestRank = rank;
-        bestCards = cards;
+        bestRank = rank; bestCards = cards;
       }
     }
     return bestCards;
+  }
+
+  findCheaperBeat(lastPattern, currentBeat) {
+    // Avoid using 2s/jokers when a bomb can do the job
+    if (lastPattern.type === 'bomb' || lastPattern.type === 'rocket') return null;
+    return null; // Simplified: accept the beat
+  }
+
+  // ── Utilities ────────────────────────────────────────────
+
+  buildRankMap() {
+    const map = new Map();
+    for (const id of this.player.hand) {
+      const r = getRank(id);
+      if (!map.has(r)) map.set(r, []);
+      map.get(r).push(id);
+    }
+    return map;
+  }
+
+  cardOfRank(rank) {
+    for (const id of this.player.hand) {
+      if (getRank(id) === rank) return id;
+    }
+    return this.player.hand[0];
+  }
+
+  cardsOfRank(rank, count) {
+    const cards = [];
+    for (const id of this.player.hand) {
+      if (getRank(id) === rank && cards.length < count) cards.push(id);
+    }
+    return cards;
   }
 }
 
