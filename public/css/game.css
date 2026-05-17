@@ -1,0 +1,159 @@
+#gameCanvas {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Overlays */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 10;
+}
+
+.overlay-panel {
+  background: rgba(20, 60, 30, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.12);
+  min-width: 320px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.overlay-title {
+  font-size: 28px;
+  font-weight: 900;
+  margin-bottom: 16px;
+}
+
+.overlay-title.win { color: #ffc107; }
+.overlay-title.lose { color: #ff5252; }
+
+.overlay-scores { margin: 16px 0; }
+
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 16px;
+  font-size: 15px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.score-row .change-positive { color: #4caf50; }
+.score-row .change-negative { color: #ff5252; }
+
+.overlay-btn {
+  margin-top: 20px;
+  padding: 12px 40px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  background: #ffc107;
+  color: #1a1a1a;
+  transition: all 0.2s;
+  min-height: 48px;
+}
+
+.overlay-btn:hover { background: #ffd54f; }
+
+.overlay-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Waiting overlay */
+.waiting-msg {
+  font-size: 18px;
+  color: rgba(255,255,255,0.7);
+}
+
+.waiting-spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top-color: #ffc107;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.dc-badge {
+  display: inline-block;
+  background: #ff5252;
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+/* ── Mobile responsive ────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .overlay-panel {
+    padding: 24px 16px;
+    min-width: auto;
+    width: 92vw;
+    border-radius: 14px;
+  }
+
+  .overlay-title {
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+
+  .overlay-scores { margin: 12px 0; }
+
+  .score-row {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+
+  .overlay-btn {
+    margin-top: 16px;
+    padding: 14px 32px;
+    font-size: 15px;
+    min-height: 48px;
+    width: 100%;
+  }
+
+  .waiting-msg {
+    font-size: 15px;
+  }
+
+  .waiting-spinner {
+    width: 20px;
+    height: 20px;
+    border-width: 2px;
+  }
+}
+
+@media (max-width: 380px) {
+  .overlay-panel {
+    padding: 20px 12px;
+    width: 96vw;
+  }
+
+  .overlay-title { font-size: 20px; }
+  .score-row { font-size: 12px; }
+}

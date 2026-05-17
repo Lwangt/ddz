@@ -1,0 +1,23 @@
+{
+  "name": "ddz",
+  "version": "1.0.0",
+  "description": "斗地主在线多人游戏 - Dou Di Zhu Multiplayer Card Game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "doudizhu",
+    "card-game",
+    "multiplayer"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "ssh2": "^1.17.0"
+  }
+}

@@ -1,0 +1,10 @@
+node_modules/
+.env
+*.log
+.DS_Store
+deploy.js
+fix_nginx.js
+fix_nginx2.js
+check_nginx.js
+check2.js
+/tmp/

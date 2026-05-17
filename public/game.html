@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0a4a1c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>斗地主 - 游戏中</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Game over overlay -->
+  <div class="overlay hidden" id="gameOverOverlay">
+    <div class="overlay-panel">
+      <div class="overlay-title" id="gameOverTitle"></div>
+      <div class="overlay-scores" id="gameOverScores"></div>
+      <button class="overlay-btn" id="readyNextBtn">准备下一局</button>
+      <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,0.5)" id="readyStatus"></div>
+    </div>
+  </div>
+
+  <!-- Waiting for players overlay -->
+  <div class="overlay hidden" id="waitingOverlay">
+    <div class="overlay-panel">
+      <div class="waiting-msg">
+        <span class="waiting-spinner"></span>
+        等待其他玩家加入...
+      </div>
+      <div style="margin-top:10px;font-size:14px;color:rgba(255,255,255,0.5)">
+        房间号：<span id="waitingRoomCode"></span>
+      </div>
+    </div>
+  </div>
+
+  <script src="socket.io/socket.io.js"></script>
+  <script src="js/socket.js"></script>
+  <script src="js/canvas/cardDrawer.js"></script>
+  <script src="js/canvas/layout.js"></script>
+  <script src="js/canvas/renderer.js"></script>
+  <script src="js/canvas/animations.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

@@ -1,0 +1,379 @@
+.lobby-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  min-height: 100vh;
+  padding: 20px;
+  background: radial-gradient(ellipse at center, #0d5e23 0%, #062e10 100%);
+  overflow-y: auto;
+}
+
+.lobby-title {
+  font-size: 56px;
+  font-weight: 900;
+  margin-bottom: 8px;
+  text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  letter-spacing: 12px;
+}
+
+.lobby-subtitle {
+  font-size: 16px;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 40px;
+  letter-spacing: 4px;
+}
+
+.lobby-panel {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.lobby-section {
+  margin-bottom: 24px;
+}
+
+.lobby-section:last-child {
+  margin-bottom: 0;
+}
+
+.lobby-label {
+  font-size: 14px;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.lobby-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 16px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.15);
+  transition: border-color 0.2s;
+}
+
+.lobby-input::placeholder {
+  color: rgba(255,255,255,0.3);
+}
+
+.lobby-input:focus {
+  border-color: rgba(255,255,255,0.4);
+}
+
+.lobby-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.lobby-btn-primary {
+  background: #ffc107;
+  color: #1a1a1a;
+}
+
+.lobby-btn-primary:hover {
+  background: #ffd54f;
+  box-shadow: 0 4px 16px rgba(255,193,7,0.4);
+}
+
+.lobby-btn-secondary {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+
+.lobby-btn-secondary:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.lobby-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lobby-divider {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+  color: rgba(255,255,255,0.3);
+  font-size: 13px;
+}
+
+.lobby-divider::before,
+.lobby-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+}
+
+.lobby-divider span {
+  padding: 0 16px;
+}
+
+.room-created { text-align: center; }
+
+.room-code-display {
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: 8px;
+  margin: 16px 0;
+  padding: 12px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 10px;
+}
+
+.room-link {
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+  word-break: break-all;
+  margin-bottom: 12px;
+  background: rgba(0,0,0,0.2);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.copy-btn {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+
+.copy-btn:hover { background: rgba(255,255,255,0.25); }
+.copied { background: #4caf50 !important; }
+
+.player-list { margin-top: 20px; }
+
+.player-slot {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.player-slot .seat-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.player-slot.filled .seat-badge { background: #4caf50; }
+
+.player-slot .player-name { flex: 1; font-size: 15px; }
+
+.player-slot .waiting-text { color: rgba(255,255,255,0.3); font-size: 13px; }
+
+.status-msg {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
+  color: #ff5252;
+  min-height: 20px;
+}
+
+.status-msg.success { color: #4caf50; }
+
+.start-game-area { text-align: center; margin-top: 20px; }
+
+.start-game-btn {
+  padding: 14px 48px;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  background: #ff5722;
+  color: #fff;
+  transition: all 0.2s;
+}
+
+.start-game-btn:hover {
+  background: #ff7043;
+  box-shadow: 0 4px 16px rgba(255,87,34,0.4);
+}
+
+.start-game-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Test mode toggle ────────────────────────────────────── */
+
+.test-mode-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: all 0.3s;
+  z-index: 100;
+  backdrop-filter: blur(6px);
+}
+
+.test-mode-toggle:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.25);
+}
+
+.test-mode-toggle.active {
+  background: rgba(76, 175, 80, 0.25);
+  border-color: rgba(76, 175, 80, 0.5);
+  box-shadow: 0 0 16px rgba(76, 175, 80, 0.3);
+}
+
+.test-mode-icon {
+  font-size: 18px;
+}
+
+.test-mode-label {
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+  font-weight: 500;
+}
+
+.test-mode-toggle.active .test-mode-label {
+  color: #4caf50;
+}
+
+/* Test mode indicator in room panel */
+.test-mode-indicator {
+  display: inline-block;
+  padding: 4px 12px;
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+/* ── Mobile responsive ────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .lobby-container {
+    padding: 16px;
+    justify-content: flex-start;
+    padding-top: 10vh;
+  }
+
+  .lobby-title {
+    font-size: 32px;
+    letter-spacing: 8px;
+    margin-bottom: 4px;
+  }
+
+  .lobby-subtitle {
+    font-size: 13px;
+    margin-bottom: 28px;
+    letter-spacing: 2px;
+  }
+
+  .lobby-panel {
+    max-width: 100%;
+    padding: 20px 16px;
+    border-radius: 12px;
+  }
+
+  .lobby-section {
+    margin-bottom: 18px;
+  }
+
+  .lobby-label {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .lobby-input {
+    padding: 12px 14px;
+    font-size: 15px;
+    border-radius: 8px;
+  }
+
+  .lobby-btn {
+    padding: 14px;
+    font-size: 15px;
+    border-radius: 8px;
+    min-height: 48px;
+  }
+
+  .lobby-divider {
+    margin: 18px 0;
+    font-size: 12px;
+  }
+
+  .room-code-display {
+    font-size: 30px;
+    letter-spacing: 5px;
+    margin: 12px 0;
+    padding: 10px;
+  }
+
+  .room-link {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .player-slot {
+    padding: 8px 12px;
+  }
+
+  .player-slot .seat-badge {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+    margin-right: 10px;
+  }
+
+  .player-slot .player-name { font-size: 14px; }
+
+  .start-game-btn {
+    padding: 14px 36px;
+    font-size: 16px;
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 380px) {
+  .lobby-title {
+    font-size: 26px;
+    letter-spacing: 6px;
+  }
+
+  .lobby-container {
+    padding-top: 6vh;
+  }
+
+  .room-code-display {
+    font-size: 24px;
+    letter-spacing: 3px;
+  }
+}

@@ -1,0 +1,4 @@
+HOST = '47.112.7.97'
+PORT = 22
+USER = 'lwt'
+PASS = '123456lwt'
