@@ -255,6 +255,52 @@ const Layout = (() => {
     }));
   }
 
+  // ── Player action zones (one per player) ─────────────────
+
+  // Self (bottom) action zone — above own hand
+  function selfActionZone() {
+    const p0 = p0Area();
+    const cw = cardW(), ch = cardH();
+    return {
+      x: p0.x,
+      y: p0.y - ch * 0.55 - 4 * scale,
+      w: p0.w,
+      h: ch * 0.5 + 2 * scale
+    };
+  }
+
+  // Left opponent action zone — to the right of their cards
+  function leftActionZone() {
+    const p1 = p1Area();
+    const cw = cardW(), ch = cardH();
+    return {
+      x: p1.x + p1.w + 4 * scale,
+      y: p1.y + p1.h * 0.2,
+      w: w * 0.12,
+      h: ch * 0.5 + 2 * scale
+    };
+  }
+
+  // Top opponent action zone — below their cards
+  function topActionZone() {
+    const p2 = p2Area();
+    const cw = cardW(), ch = cardH();
+    return {
+      x: p2.x,
+      y: p2.y + p2.h + 2 * scale,
+      w: p2.w,
+      h: ch * 0.5 + 2 * scale
+    };
+  }
+
+  // Get action zone for a display position
+  function getActionZone(dispPos) {
+    if (dispPos === 0) return selfActionZone();
+    if (dispPos === 1) return leftActionZone();
+    if (dispPos === 2) return topActionZone();
+    return selfActionZone();
+  }
+
   // ── Hit testing ──────────────────────────────────────────
 
   function hitTestHand(mx, my, handSize) {
@@ -312,6 +358,7 @@ const Layout = (() => {
     getOpponentVPositions,
     getPlayedCardPositions,
     getBonusCardPositions,
+    selfActionZone, leftActionZone, topActionZone, getActionZone,
     hitTestHand,
     hitTestButton,
   };

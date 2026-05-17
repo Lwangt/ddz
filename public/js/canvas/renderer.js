@@ -34,6 +34,7 @@ const GameRenderer = (() => {
     drawInfoBar();
     drawScoreBoard();
     drawOpponents();
+    drawBidResults();
     drawPlayerActions();
     drawPlayArea();
     drawBonusCards();
@@ -156,6 +157,42 @@ const GameRenderer = (() => {
   }
 
   // ── Opponents ────────────────────────────────────────────
+
+  function drawBidResults() {
+    const s = gameState;
+    if (!s.bidResults || s.bidResults.length === 0) return;
+    const sc = Layout.scale();
+    const isMob = Layout.isMobile();
+    const pa = Layout.playArea();
+    const now = Date.now();
+
+    // Filter to results shown in last 5 seconds
+    const recent = s.bidResults.filter(r => now - r.time < 5000);
+    if (recent.length === 0) return;
+
+    // Show each bid result as a floating label in the center area
+    const startY = pa.y + pa.h * 0.15;
+    const lineH = isMob ? 24 * sc : 28 * sc;
+
+    ctx.textAlign = 'center';
+    ctx.font = `bold ${isMob ? 13 : 16 * sc}px "Microsoft YaHei", sans-serif`;
+
+    for (let i = 0; i < recent.length; i++) {
+      const r = recent[i];
+      const elapsed = now - r.time;
+      const alpha = elapsed < 4000 ? 1 : Math.max(0, 1 - (elapsed - 4000) / 1000);
+      const label = r.amount > 0 ? `${r.playerName}：叫 ${r.amount} 分` : `${r.playerName}：不叫`;
+
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = r.amount > 0 ? '#ffd700' : 'rgba(255,255,255,0.5)';
+      ctx.fillText(label, pa.x + pa.w / 2, startY + i * lineH);
+      ctx.globalAlpha = 1;
+    }
+    ctx.textAlign = 'start';
+
+    // Clean up expired results
+    s.bidResults = recent;
+  }
 
   function drawScoreBoard() {
     const s = gameState;
@@ -288,45 +325,50 @@ const GameRenderer = (() => {
     if (!s.playerLastActions || s.phase !== 'PLAYING') return;
     const sc = Layout.scale();
     const isMob = Layout.isMobile();
+    const cw = Layout.cardW(), ch = Layout.cardH();
 
     for (const player of s.players) {
       const lastAct = s.playerLastActions[player.seatIndex];
       if (!lastAct) continue;
 
-      // Determine display position
       const dispPos = player.seatIndex === s.mySeat ? 0 : (player.seatIndex - s.mySeat + 3) % 3;
-      let labelX, labelY;
-
-      if (dispPos === 0) {
-        // Your own action — show above your hand
-        const p0 = Layout.p0Area();
-        labelX = p0.x + p0.w / 2;
-        labelY = p0.y - 8 * sc;
-      } else if (dispPos === 1) {
-        // Left opponent
-        const p1 = Layout.p1Area();
-        labelX = p1.x + p1.w + 6 * sc;
-        labelY = p1.y + p1.h / 2;
-      } else {
-        // Top opponent
-        const p2 = Layout.p2Area();
-        labelX = p2.x + p2.w / 2;
-        labelY = p2.y + p2.h + 4 * sc;
-      }
-
-      ctx.textAlign = 'center';
-      ctx.font = `${isMob ? 10 : 12 * sc}px "Microsoft YaHei", sans-serif`;
+      const zone = Layout.getActionZone(dispPos);
 
       if (lastAct.action === 'pass') {
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.fillText('不出', labelX, labelY);
-      } else if (lastAct.action === 'play') {
-        const count = lastAct.cardIds ? lastAct.cardIds.length : 0;
-        const patName = lastAct.pattern ? (PATTERN_LABELS[lastAct.pattern.type] || lastAct.pattern.type) : '';
-        ctx.fillStyle = '#ffd700';
-        ctx.fillText(patName + ' (' + count + '张)', labelX, labelY);
+        // Show "不出" centered in zone
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.font = `bold ${isMob ? 13 : 16 * sc}px "Microsoft YaHei", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('不出', zone.x + zone.w / 2, zone.y + zone.h / 2);
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'alphabetic';
+      } else if (lastAct.action === 'play' && lastAct.cardIds) {
+        // Show played cards (smaller, face-up) + pattern name
+        const smallW = cw * 0.6;
+        const smallH = ch * 0.6;
+        const count = lastAct.cardIds.length;
+        const spacing = Math.min(smallW * 0.4, (zone.w - smallW) / Math.max(count - 1, 1));
+        const totalW = smallW + (count - 1) * spacing;
+        const startX = zone.x + (zone.w - totalW) / 2;
+        const startY = zone.y + 2 * sc;
+
+        // Pattern label above the cards
+        if (lastAct.pattern) {
+          const patName = PATTERN_LABELS[lastAct.pattern.type] || lastAct.pattern.type;
+          ctx.fillStyle = 'rgba(255,215,0,0.8)';
+          ctx.font = `bold ${isMob ? 9 : 10 * sc}px "Microsoft YaHei", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText(patName, zone.x + zone.w / 2, startY - 2 * sc);
+          ctx.textAlign = 'start';
+        }
+
+        // Draw small cards
+        for (let i = 0; i < count; i++) {
+          CardDrawer.drawCardFace(ctx, lastAct.cardIds[i],
+            startX + i * spacing, startY, smallW, smallH, false);
+        }
       }
-      ctx.textAlign = 'start';
     }
   }
 

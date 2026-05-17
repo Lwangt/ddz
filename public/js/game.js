@@ -25,6 +25,7 @@
     turnTimeTotal: 0,
     bonusCards: [],
     playerLastActions: {},
+    bidResults: [],
     currentPlayerIndex: -1,
     _buttonLayout: null,
     _toast: null,
@@ -90,6 +91,7 @@
     state.lastPlayedCards = [];
     state.lastPattern = null;
     state.playerLastActions = {};
+    state.bidResults = [];
     state.multiplier = 1;
     state.canPass = false;
     state.myTurn = false;
@@ -117,6 +119,14 @@
 
   function onBidMade(data) {
     state.currentBid = data.currentBid;
+    // Track bid result for display
+    if (!state.bidResults) state.bidResults = [];
+    state.bidResults.push({
+      seatIndex: data.seatIndex,
+      playerName: data.playerName,
+      amount: data.amount,
+      time: Date.now()
+    });
   }
 
   function onLandlordDetermined(data) {
@@ -130,6 +140,7 @@
 
     // Everyone sees bonus cards
     state.bonusCards = data.bonusCards || [];
+    state.bidResults = [];
     state.lastPlayedCards = [];
     state.lastPattern = null;
     state.passCount = 0;
