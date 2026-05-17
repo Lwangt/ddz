@@ -6,6 +6,9 @@ deploy.js
 deploy_lwt.js
 fix_nginx.js
 fix_nginx2.js
+fix_nginx_root.js
+fix_ddz.js
 check_nginx.js
 check2.js
+diag.js
 /tmp/
