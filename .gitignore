@@ -10,7 +10,9 @@ fix_nginx_root.js
 fix_ddz.js
 setup_lwt_nginx.js
 setup_lwt_nginx2.js
+fix_all.js
+diag.js
+diag2.js
 check_nginx.js
 check2.js
-diag.js
 /tmp/

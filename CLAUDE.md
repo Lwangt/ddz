@@ -36,12 +36,24 @@ scp -r e:/code/game/* lwt@47.112.7.97:/home/lwt/ddz/
 ssh lwt@47.112.7.97 "pkill -f 'node server.js'; cd /home/lwt/ddz && npm install && nohup node server.js > /home/lwt/ddz.log 2>&1 &"
 ```
 
-## lwt nginx 管理
+## lwt nginx 管理（PM2守护，自动重启）
 ```
-# 测试配置
-ssh lwt@47.112.7.97 "nginx -c /home/lwt/nginx/conf/nginx.conf -t"
+# 查看状态
+ssh lwt@47.112.7.97 "pm2 status"
 # 重启
-ssh lwt@47.112.7.97 "pkill -f 'nginx.*lwt'; nginx -c /home/lwt/nginx/conf/nginx.conf"
+ssh lwt@47.112.7.97 "pm2 restart lwt-nginx"
+# 日志
+ssh lwt@47.112.7.97 "pm2 logs lwt-nginx"
+```
+
+## 系统 nginx 配置恢复
+
+系统 nginx 的 `/ddz` 代理配置可能被其他部署流程覆盖。
+备份文件位置：`/root/nginx-backup/default.ddz.bak`
+
+恢复命令（需 root）：
+```
+cp /root/nginx-backup/default.ddz.bak /etc/nginx/sites-enabled/default && nginx -t && nginx -s reload
 ```
 
 ## 需求记录规则
