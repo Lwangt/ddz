@@ -21,6 +21,12 @@ kill_old.js
 debug_test.js
 switch_port.js
 fix_ddz.js
+test_join.js
+test_join_server.js
+test_port80.js
+check_join.js
+check_firewall.js
+run_test.js
 diag.js
 diag2.js
 check_nginx.js
