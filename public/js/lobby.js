@@ -199,7 +199,8 @@
 
   // Start game
   startGameBtn.addEventListener('click', () => {
-    if (playersInRoom.length < 3) return;
+    if (!testMode && playersInRoom.length < 3) return;
+    if (playersInRoom.length < 1) return;
     SocketManager.emit('start_game');
   });
 
