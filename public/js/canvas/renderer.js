@@ -34,6 +34,7 @@ const GameRenderer = (() => {
     drawInfoBar();
     drawScoreBoard();
     drawOpponents();
+    drawPlayerActions();
     drawPlayArea();
     drawBonusCards();
     drawOwnHand();
@@ -281,6 +282,53 @@ const GameRenderer = (() => {
   }
 
   // ── Play area ─────────────────────────────────────────────
+
+  function drawPlayerActions() {
+    const s = gameState;
+    if (!s.playerLastActions || s.phase !== 'PLAYING') return;
+    const sc = Layout.scale();
+    const isMob = Layout.isMobile();
+
+    for (const player of s.players) {
+      const lastAct = s.playerLastActions[player.seatIndex];
+      if (!lastAct) continue;
+
+      // Determine display position
+      const dispPos = player.seatIndex === s.mySeat ? 0 : (player.seatIndex - s.mySeat + 3) % 3;
+      let labelX, labelY;
+
+      if (dispPos === 0) {
+        // Your own action — show above your hand
+        const p0 = Layout.p0Area();
+        labelX = p0.x + p0.w / 2;
+        labelY = p0.y - 8 * sc;
+      } else if (dispPos === 1) {
+        // Left opponent
+        const p1 = Layout.p1Area();
+        labelX = p1.x + p1.w + 6 * sc;
+        labelY = p1.y + p1.h / 2;
+      } else {
+        // Top opponent
+        const p2 = Layout.p2Area();
+        labelX = p2.x + p2.w / 2;
+        labelY = p2.y + p2.h + 4 * sc;
+      }
+
+      ctx.textAlign = 'center';
+      ctx.font = `${isMob ? 10 : 12 * sc}px "Microsoft YaHei", sans-serif`;
+
+      if (lastAct.action === 'pass') {
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.fillText('不出', labelX, labelY);
+      } else if (lastAct.action === 'play') {
+        const count = lastAct.cardIds ? lastAct.cardIds.length : 0;
+        const patName = lastAct.pattern ? (PATTERN_LABELS[lastAct.pattern.type] || lastAct.pattern.type) : '';
+        ctx.fillStyle = '#ffd700';
+        ctx.fillText(patName + ' (' + count + '张)', labelX, labelY);
+      }
+      ctx.textAlign = 'start';
+    }
+  }
 
   function drawPlayArea() {
     const s = gameState;

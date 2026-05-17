@@ -244,13 +244,14 @@ const Layout = (() => {
 
   function getBonusCardPositions() {
     const cw = cardW(), ch = cardH();
-    const pa = playArea();
-    const gap = isMobile() ? cw * 0.6 : cw * 1.1;
+    const ib = infoBar();
+    // Top-left corner, next to info bar
+    const gap = isMobile() ? cw * 0.4 : cw * 0.6;
     return [0, 1, 2].map(i => ({
-      x: pa.x + pa.w / 2 - gap * 1.5 + i * gap,
-      y: pa.y + pa.h / 2 - ch / 2,
-      w: cw,
-      h: ch
+      x: 10 * scale + i * (cw + gap),
+      y: ib.y + ib.h + 6 * scale,
+      w: cw * 0.8,
+      h: ch * 0.8
     }));
   }
 

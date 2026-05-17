@@ -24,6 +24,7 @@
     turnTimeLeft: 0,
     turnTimeTotal: 0,
     bonusCards: [],
+    playerLastActions: {},
     currentPlayerIndex: -1,
     _buttonLayout: null,
     _toast: null,
@@ -88,6 +89,7 @@
     state.selectedCards = new Set();
     state.lastPlayedCards = [];
     state.lastPattern = null;
+    state.playerLastActions = {};
     state.multiplier = 1;
     state.canPass = false;
     state.myTurn = false;
@@ -184,9 +186,21 @@
     const player = state.players.find(p => p.seatIndex === data.seatIndex);
     if (player) player.cardCount = data.remainingCards;
 
+    // Record per-player last action
+    state.playerLastActions[data.seatIndex] = {
+      action: 'play',
+      cardIds: data.cardIds,
+      pattern: data.pattern,
+    };
+
+    // If we just played, end our turn immediately (prevent double-play bug)
+    if (data.seatIndex === state.mySeat) {
+      state.myTurn = false;
+      state.selectedCards = new Set();
+    }
+
     clearTurnTimer();
 
-    // Toast for bombs
     if (data.pattern && (data.pattern.type === 'bomb' || data.pattern.type === 'rocket')) {
       const name = player ? player.name : '';
       const typeName = data.pattern.type === 'rocket' ? '🚀 火箭！' : '💣 炸弹！';
@@ -196,6 +210,12 @@
 
   function onPlayerPassed(data) {
     state.passCount++;
+    state.playerLastActions[data.seatIndex] = { action: 'pass' };
+    // If we just passed, end our turn
+    if (data.seatIndex === state.mySeat) {
+      state.myTurn = false;
+      state.selectedCards = new Set();
+    }
     clearTurnTimer();
     const player = state.players.find(p => p.seatIndex === data.seatIndex);
     if (player) showToast(`${player.name} 不出`, 1200);
@@ -205,6 +225,7 @@
     state.lastPlayedCards = [];
     state.lastPattern = null;
     state.passCount = 0;
+    state.playerLastActions = {};
   }
 
   function onGameOver(data) {
