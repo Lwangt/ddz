@@ -3,6 +3,7 @@ node_modules/
 *.log
 .DS_Store
 deploy.js
+deploy_lwt.js
 fix_nginx.js
 fix_nginx2.js
 check_nginx.js
