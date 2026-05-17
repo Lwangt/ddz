@@ -42,6 +42,19 @@ ssh lwt@47.112.7.97 "nginx -c /home/lwt/nginx/conf/nginx.conf -t"
 ssh lwt@47.112.7.97 "pkill -f 'nginx.*lwt'; nginx -c /home/lwt/nginx/conf/nginx.conf"
 ```
 
+## 需求记录规则
+
+**每次用户提出需求时，必须将需求内容和时间记录到 `CHANGELOG.md` 文件中。**
+
+格式：
+```
+## YYYY-MM-DD HH:mm
+- 用户需求描述
+- 处理结果
+```
+
+此规则优先级最高，任何对话中用户提出的新需求都需追加记录。
+
 ## 项目架构
 - 后端：Node.js + Express + Socket.IO（`server.js` + `server/`）
 - 前端：HTML5 Canvas（`public/`）
