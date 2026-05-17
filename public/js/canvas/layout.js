@@ -107,18 +107,20 @@ const Layout = (() => {
   function buttonArea() {
     const p0 = p0Area();
     if (isMobile()) {
+      // Minimum 48px touch target on mobile
+      const btnH = Math.max(48, 52 * scale);
       return {
         x: w * 0.03,
-        y: p0.y + p0.h + 4 * scale,
+        y: Math.min(p0.y + p0.h + 4 * scale, h - btnH - 4),
         w: w * 0.94,
-        h: 52 * scale
+        h: btnH
       };
     }
     return {
       x: w * 0.2,
       y: p0.y + p0.h + 6 * scale,
       w: w * 0.6,
-      h: 46 * scale
+      h: Math.max(36, 46 * scale)
     };
   }
 
@@ -257,13 +259,15 @@ const Layout = (() => {
   function hitTestHand(mx, my, handSize) {
     const positions = getHandPositions(handSize);
     const overlap = adaptiveOverlap(handSize);
-    // On mobile, expand hit area by 8px (in CSS coords) for touch friendliness
-    const expand = isMobile() ? 8 : 0;
+    const expand = isMobile() ? 12 : 4;
 
     for (let i = positions.length - 1; i >= 0; i--) {
       const p = positions[i];
-      const clickableLeft = p.x + p.w * overlap;
-      if (mx >= clickableLeft - expand && mx <= p.x + p.w + expand &&
+      // Rightmost card: full width clickable. Others: only visible left portion
+      const isLast = (i === positions.length - 1);
+      const clickableRight = isLast ? p.x + p.w : p.x + p.w * (1 - overlap);
+      const clickableLeft = p.x;
+      if (mx >= clickableLeft - expand && mx <= clickableRight + expand &&
           my >= p.y - expand && my <= p.y + p.h + expand) {
         return i;
       }
@@ -273,7 +277,7 @@ const Layout = (() => {
 
   function hitTestButton(mx, my, buttonLayout) {
     if (!buttonLayout) return null;
-    const expand = isMobile() ? 6 : 0;
+    const expand = isMobile() ? 14 : 4;
     for (const btn of buttonLayout) {
       if (mx >= btn.x - expand && mx <= btn.x + btn.w + expand &&
           my >= btn.y - expand && my <= btn.y + btn.h + expand) {

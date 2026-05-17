@@ -47,7 +47,7 @@ const CardDrawer = (() => {
   function drawCardFace(ctx, cardId, x, y, w, h, selected) {
     const card = decode(cardId);
     const s = Math.min(w, h) / 70;
-    const lift = selected ? 20 * s : 0;
+    const lift = selected ? -22 * s : 0;
 
     ctx.save();
     ctx.translate(x, y + lift);
