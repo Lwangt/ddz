@@ -46,12 +46,12 @@
   }
 
   function generateShareLink(code) {
-    const base = window.location.origin;
-    const baseHref = getBaseHref();
-    if (baseHref !== '/') {
-      return `${base}${baseHref}game.html?room=${code}`;
-    }
-    return `${base}/game.html?room=${code}`;
+    // Share lobby URL with room code pre-filled
+    const origin = window.location.origin;
+    const pathname = window.location.pathname;
+    // Strip trailing filename if any
+    const dir = pathname.endsWith('.html') ? pathname.substring(0, pathname.lastIndexOf('/') + 1) : pathname;
+    return `${origin}${dir}?room=${code}`;
   }
 
   function renderPlayerSlots() {
@@ -110,7 +110,8 @@
     if (testMode) {
       roomCodeDisplay.innerHTML = myRoomCode + ' <span class="test-mode-indicator">🤖 测试</span>';
     }
-    roomLink.textContent = generateShareLink(myRoomCode);
+    const link = generateShareLink(myRoomCode);
+    roomLink.innerHTML = '分享链接：<br><a style="color:#ffd54f;word-break:break-all" href="' + link + '">' + link + '</a>';
     renderPlayerSlots();
 
     // Add room code to URL for the game page
@@ -183,7 +184,8 @@
   // Copy link
   copyBtn.addEventListener('click', () => {
     const link = generateShareLink(myRoomCode);
-    navigator.clipboard.writeText(link).then(() => {
+    const text = `来玩斗地主！房间号：${myRoomCode}\n${link}`;
+    navigator.clipboard.writeText(text).then(() => {
       copyBtn.textContent = '已复制!';
       copyBtn.classList.add('copied');
       setTimeout(() => {
@@ -191,9 +193,11 @@
         copyBtn.classList.remove('copied');
       }, 2000);
     }).catch(() => {
-      // Fallback: select the text
-      roomLink.select();
-      document.execCommand('copy');
+      navigator.clipboard.writeText(link).then(() => {
+        copyBtn.textContent = '已复制!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => { copyBtn.textContent = '复制链接'; copyBtn.classList.remove('copied'); }, 2000);
+      });
     });
   });
 
@@ -240,6 +244,17 @@
         renderPlayerSlots();
         showRoomStatus('测试模式已关闭');
       }
+    }
+  });
+
+  // Socket.IO error handling
+  SocketManager.on('connect_error', () => {
+    showRoomStatus('连接服务器失败，请检查网络', false);
+    showStatus('连接服务器失败，请检查网络', false);
+  });
+  SocketManager.on('disconnect', (reason) => {
+    if (reason === 'io server disconnect' || reason === 'transport close') {
+      showRoomStatus('与服务器断开连接，请刷新页面', false);
     }
   });
 
