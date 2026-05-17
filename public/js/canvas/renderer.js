@@ -32,6 +32,7 @@ const GameRenderer = (() => {
     drawBackground(W, H);
     drawGhostTurnIndicator();
     drawInfoBar();
+    drawScoreBoard();
     drawOpponents();
     drawPlayArea();
     drawBonusCards();
@@ -155,6 +156,31 @@ const GameRenderer = (() => {
 
   // ── Opponents ────────────────────────────────────────────
 
+  function drawScoreBoard() {
+    const s = gameState;
+    if (!s.players || s.players.length === 0) return;
+    const sc = Layout.scale();
+    const isMob = Layout.isMobile();
+    const ib = Layout.infoBar();
+
+    // Position: right side of info bar
+    const fontSize = isMob ? 10 : 13;
+    ctx.font = `bold ${fontSize * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.textBaseline = 'middle';
+
+    let x = Layout.cssW() - 10 * sc;
+    for (let i = s.players.length - 1; i >= 0; i--) {
+      const p = s.players[i];
+      const label = p.name.slice(0, 3) + ': ' + (p.score >= 0 ? '+' : '') + p.score;
+      const tw = ctx.measureText(label).width;
+      x -= tw + 20 * sc;
+      ctx.fillStyle = p.seatIndex === s.mySeat ? '#ffd700' : 'rgba(255,255,255,0.7)';
+      ctx.fillText(label, x, ib.y + ib.h / 2);
+      x -= 4 * sc;
+    }
+    ctx.textBaseline = 'alphabetic';
+  }
+
   function drawOpponents() {
     const s = gameState;
     const mySeat = s.mySeat;
@@ -261,30 +287,43 @@ const GameRenderer = (() => {
     const sc = Layout.scale();
     const isMob = Layout.isMobile();
 
+    // Show each player's last play or "pass" status
+    // We use lastPlayedCards + passCount to determine what to show
     if (s.lastPlayedCards && s.lastPlayedCards.length > 0 && s.lastPlayedBy >= 0) {
       const player = s.players.find(p => p.seatIndex === s.lastPlayedBy);
       const dispPos = (s.lastPlayedBy - s.mySeat + 3) % 3;
       const positions = Layout.getPlayedCardPositions(s.lastPlayedCards, dispPos);
 
-      // Pattern label background
+      // Player name above cards
+      if (player) {
+        const pos = positions[0];
+        ctx.fillStyle = '#ffd700';
+        ctx.font = `bold ${isMob ? 11 : 13 * sc}px "Microsoft YaHei", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(player.name + ' 出牌', pos.x + pos.w / 2,
+          pos.y - 4 * sc);
+        ctx.textAlign = 'start';
+      }
+
+      // Pattern label
       if (s.lastPattern) {
         const lbl = PATTERN_LABELS[s.lastPattern.type] || s.lastPattern.type;
-        ctx.font = `bold ${isMob ? 10 : 12 * sc}px "Microsoft YaHei", sans-serif`;
+        ctx.font = `bold ${isMob ? 9 : 11 * sc}px "Microsoft YaHei", sans-serif`;
         const tw = ctx.measureText(lbl).width;
         const pos = positions[Math.floor(positions.length / 2)];
-        const bx = pos.x + pos.w / 2 - tw / 2 - 8 * sc;
-        const by = pos.y - 6 * sc;
+        const bx = pos.x + pos.w / 2 - tw / 2 - 6 * sc;
+        const by = pos.y + positions[0].h + 2 * sc;
 
         ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.beginPath();
         const r = 4 * sc;
+        ctx.beginPath();
         ctx.moveTo(bx + r, by);
-        ctx.lineTo(bx + tw + 16 * sc - r, by);
-        ctx.arcTo(bx + tw + 16 * sc, by, bx + tw + 16 * sc, by + r, r);
-        ctx.lineTo(bx + tw + 16 * sc, by + 20 * sc - r);
-        ctx.arcTo(bx + tw + 16 * sc, by + 20 * sc, bx + tw + 16 * sc - r, by + 20 * sc, r);
-        ctx.lineTo(bx + r, by + 20 * sc);
-        ctx.arcTo(bx, by + 20 * sc, bx, by + 20 * sc - r, r);
+        ctx.lineTo(bx + tw + 12 * sc - r, by);
+        ctx.arcTo(bx + tw + 12 * sc, by, bx + tw + 12 * sc, by + r, r);
+        ctx.lineTo(bx + tw + 12 * sc, by + 16 * sc - r);
+        ctx.arcTo(bx + tw + 12 * sc, by + 16 * sc, bx + tw + 12 * sc - r, by + 16 * sc, r);
+        ctx.lineTo(bx + r, by + 16 * sc);
+        ctx.arcTo(bx, by + 16 * sc, bx, by + 16 * sc - r, r);
         ctx.lineTo(bx, by + r);
         ctx.arcTo(bx, by, bx + r, by, r);
         ctx.closePath();
@@ -292,7 +331,7 @@ const GameRenderer = (() => {
 
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center';
-        ctx.fillText(lbl, bx + tw / 2 + 8 * sc, by + 14 * sc);
+        ctx.fillText(lbl, bx + tw / 2 + 6 * sc, by + 11 * sc);
         ctx.textAlign = 'start';
       }
 
@@ -301,32 +340,18 @@ const GameRenderer = (() => {
         CardDrawer.drawCardFace(ctx, s.lastPlayedCards[i],
           positions[i].x, positions[i].y, positions[i].w, positions[i].h, false);
       }
-
-      // Player name below cards
-      if (player) {
-        const firstPos = positions[0];
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.font = `${isMob ? 10 : 12 * sc}px "Microsoft YaHei", sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText(player.name, firstPos.x + firstPos.w / 2,
-          firstPos.y + firstPos.h + 14 * sc);
-        ctx.textAlign = 'start';
-      }
     }
 
-    // Pass markers
+    // Show pass markers — display which players said "不出"
     if (s.passCount > 0) {
       const pa = Layout.playArea();
-      ctx.font = `bold ${isMob ? 14 : 18 * sc}px "Microsoft YaHei", sans-serif`;
+      const passPlayer = s.players[s.currentPlayerIndex]; // last player who acted
+      ctx.font = `bold ${isMob ? 12 : 15 * sc}px "Microsoft YaHei", sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
       ctx.textBaseline = 'middle';
-
-      if (s.passCount === 1) {
-        ctx.fillText('不出', pa.x + pa.w / 2, pa.y + pa.h / 2);
-      } else {
-        ctx.fillText('不出 ×2', pa.x + pa.w / 2, pa.y + pa.h / 2);
-      }
+      const txt = s.passCount >= 2 ? '不出 ×2' : '不出';
+      ctx.fillText(txt, pa.x + pa.w / 4, pa.y + pa.h * 0.7);
       ctx.textAlign = 'start';
       ctx.textBaseline = 'alphabetic';
     }
@@ -336,16 +361,25 @@ const GameRenderer = (() => {
 
   function drawBonusCards() {
     const s = gameState;
-    if (s.phase !== 'DEALING' && s.phase !== 'BIDDING') return;
+    // Show bonus cards in DEALING, BIDDING, and at the start of PLAYING
+    if (s.phase === 'WAITING' || s.phase === 'FINISHED') return;
     if (!s.bonusCards || s.bonusCards.length === 0) return;
 
     const positions = Layout.getBonusCardPositions();
     const isMob = Layout.isMobile();
     const sc = Layout.scale();
 
+    // After landlord is determined, show cards face-up; during bidding show face-down
+    const showFaceUp = s.phase === 'PLAYING';
+
     for (let i = 0; i < s.bonusCards.length; i++) {
-      CardDrawer.drawCardBack(ctx, positions[i].x, positions[i].y,
-        positions[i].w, positions[i].h);
+      if (showFaceUp) {
+        CardDrawer.drawCardFace(ctx, s.bonusCards[i],
+          positions[i].x, positions[i].y, positions[i].w, positions[i].h, false);
+      } else {
+        CardDrawer.drawCardBack(ctx, positions[i].x, positions[i].y,
+          positions[i].w, positions[i].h);
+      }
     }
 
     ctx.fillStyle = 'rgba(255,255,255,0.5)';

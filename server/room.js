@@ -316,21 +316,22 @@ class Room {
     // Give bonus cards to landlord
     landlord.addCards(this.bonusCards);
 
-    // Notify everyone
-    for (const p of this.players) {
-      const payload = {
-        landlordSeat: landlord.seatIndex,
-        landlordName: landlord.name,
-        bonusCards: [], // only show to landlord
-        players: this.players.map(pl => pl.toPublicJSON()),
-        currentBid: this.currentBid,
-        multiplier: this.multiplier,
-      };
-      if (p.id === landlord.id) {
-        payload.bonusCards = [...this.bonusCards];
-        payload.hand = p.toPrivateJSON().hand;
-      }
-      this.toPlayer(p.id, 'landlord_determined', payload);
+    // Broadcast landlord + bonus cards to room
+    this.toRoom('landlord_determined', {
+      landlordSeat: landlord.seatIndex,
+      landlordName: landlord.name,
+      bonusCards: [...this.bonusCards],
+      players: this.players.map(pl => pl.toPublicJSON()),
+      currentBid: this.currentBid,
+      multiplier: this.multiplier,
+    });
+
+    // Send private hand update to landlord
+    if (!landlord.isBot) {
+      this.toPlayer(landlord.id, 'your_hand_update', {
+        hand: landlord.toPrivateJSON().hand,
+        bonusCards: [...this.bonusCards],
+      });
     }
 
     // Start playing: landlord goes first
@@ -375,11 +376,17 @@ class Room {
       return;
     }
 
-    // Human: auto-pass timeout
+    // Human: auto-play timeout (play smallest card, or pass if can't play)
     this.clearTurnTimer();
-    if (!isFreshRound) {
+    if (isFreshRound) {
+      // Fresh round — must play, auto-play smallest single
       this.turnTimer = setTimeout(() => {
-        this.processPass(player.id);
+        this.executeAutoPlay(player);
+      }, C.TURN_TIMEOUT);
+    } else {
+      // Responding — try to play smallest beat, or auto-pass
+      this.turnTimer = setTimeout(() => {
+        this.executeAutoPlayOrPass(player);
       }, C.TURN_TIMEOUT);
     }
   }
@@ -511,6 +518,102 @@ class Room {
     }
 
     setTimeout(() => this.sendTurnStart(), 600);
+  }
+
+  executeAutoPlay(player) {
+    // Fresh round auto-play: play the smallest single card
+    if (this.state !== C.PHASE_PLAYING) return;
+    if (this.players[this.currentPlayerIndex] !== player) return;
+    if (player.hand.length === 0) return;
+    // Find the smallest card (hand is already sorted by rank)
+    const smallestCard = [player.hand[0]];
+    this.processPlay(player.id, smallestCard);
+  }
+
+  executeAutoPlayOrPass(player) {
+    // Responding to a play: try to find smallest beat, otherwise pass
+    if (this.state !== C.PHASE_PLAYING) return;
+    if (this.players[this.currentPlayerIndex] !== player) return;
+    if (!this.lastPattern) { this.executeAutoPlay(player); return; }
+
+    // Try to find smallest beat
+    const smallestBeat = this.findSmallestBeat(player.hand, this.lastPattern);
+    if (smallestBeat) {
+      this.processPlay(player.id, smallestBeat);
+    } else {
+      this.processPass(player.id);
+    }
+  }
+
+  findSmallestBeat(hand, lastPattern) {
+    const { getRankGroups } = require('./patterns');
+    const groups = getRankGroups(hand);
+
+    const tryBeatSingle = () => {
+      for (const id of hand) {
+        const r = require('./card').getRank(id);
+        if (r > lastPattern.rank) return [id];
+      }
+      return null;
+    };
+
+    const tryBeatPair = () => {
+      const rankMap = new Map();
+      for (const id of hand) {
+        const r = require('./card').getRank(id);
+        if (!rankMap.has(r)) rankMap.set(r, []);
+        rankMap.get(r).push(id);
+      }
+      for (const [r, cards] of [...rankMap.entries()].sort((a, b) => a[0] - b[0])) {
+        if (cards.length >= 2 && r > lastPattern.rank) return cards.slice(0, 2);
+      }
+      return null;
+    };
+
+    const tryBeatTriple = () => {
+      const rankMap = new Map();
+      for (const id of hand) {
+        const r = require('./card').getRank(id);
+        if (!rankMap.has(r)) rankMap.set(r, []);
+        rankMap.get(r).push(id);
+      }
+      for (const [r, cards] of [...rankMap.entries()].sort((a, b) => a[0] - b[0])) {
+        if (cards.length >= 3 && r > lastPattern.rank) return cards.slice(0, 3);
+      }
+      return null;
+    };
+
+    const tryBeatBomb = () => {
+      const rankMap = new Map();
+      for (const id of hand) {
+        const r = require('./card').getRank(id);
+        if (!rankMap.has(r)) rankMap.set(r, []);
+        rankMap.get(r).push(id);
+      }
+      for (const [r, cards] of [...rankMap.entries()].sort((a, b) => a[0] - b[0])) {
+        if (cards.length === 4 && r > lastPattern.rank) return cards;
+      }
+      // Rocket
+      if (hand.includes(52) && hand.includes(53)) return [52, 53];
+      return null;
+    };
+
+    switch (lastPattern.type) {
+      case 'single': return tryBeatSingle();
+      case 'pair': return tryBeatPair() || tryBeatBomb();
+      case 'triple':
+      case 'triple_plus_one':
+      case 'triple_plus_two': return tryBeatTriple() || tryBeatBomb();
+      case 'straight':
+      case 'straight_pairs':
+      case 'airplane':
+      case 'airplane_wing_single':
+      case 'airplane_wing_pair':
+      case 'four_plus_two_single':
+      case 'four_plus_two_pair': return tryBeatBomb();
+      case 'bomb': return tryBeatBomb();
+      default: return null;
+    }
   }
 
   advanceTurn() {

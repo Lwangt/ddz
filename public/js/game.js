@@ -60,6 +60,7 @@
     sm.on('bid_turn', onBidTurn);
     sm.on('bid_made', onBidMade);
     sm.on('landlord_determined', onLandlordDetermined);
+    sm.on('your_hand_update', onYourHandUpdate);
     sm.on('redeal_message', onRedealMessage);
     sm.on('turn_start', onTurnStart);
     sm.on('cards_played', onCardsPlayed);
@@ -121,12 +122,11 @@
     state.currentBid = data.currentBid;
     state.multiplier = data.multiplier;
 
+    if (data.players) state.players = data.players;
     const landlord = state.players.find(p => p.seatIndex === data.landlordSeat);
     if (landlord) landlord.isLandlord = true;
 
-    if (data.hand) state.hand = data.hand;
-    if (data.players) state.players = data.players;
-
+    // Everyone sees bonus cards
     state.bonusCards = data.bonusCards || [];
     state.lastPlayedCards = [];
     state.lastPattern = null;
@@ -134,6 +134,10 @@
 
     const isMeLandlord = state.mySeat === data.landlordSeat;
     showToast(isMeLandlord ? '你是地主！' : `${data.landlordName} 是地主`, 2000);
+  }
+
+  function onYourHandUpdate(data) {
+    if (data.hand) state.hand = data.hand;
   }
 
   function onRedealMessage(data) {
@@ -156,8 +160,13 @@
         showToast('新的一轮，请出牌', 1500);
       }
       if (state.canPass) {
-        state.turnTimeTotal = 30;
-        state.turnTimeLeft = 30;
+        state.turnTimeTotal = 20;
+        state.turnTimeLeft = 20;
+        startTurnTimer();
+      } else {
+        // Fresh round — must play, 20s to act
+        state.turnTimeTotal = 20;
+        state.turnTimeLeft = 20;
         startTurnTimer();
       }
     } else {

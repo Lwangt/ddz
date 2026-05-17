@@ -15,7 +15,7 @@ module.exports = {
 
   // Timing (milliseconds)
   BID_TIMEOUT: 15000,
-  TURN_TIMEOUT: 30000,
+  TURN_TIMEOUT: 20000,
   RECONNECT_GRACE: 30000,
 
   // Canvas base dimensions
