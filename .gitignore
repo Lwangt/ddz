@@ -4,6 +4,7 @@ node_modules/
 .DS_Store
 deploy.js
 deploy_lwt.js
+rollback.js
 fix_nginx.js
 fix_nginx2.js
 fix_nginx_root.js

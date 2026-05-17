@@ -26,14 +26,27 @@
 - **lwt nginx**（lwt 用户）：端口 8080，`/home/lwt/nginx/conf/nginx.conf`
 - **系统 nginx**（root）：仅有 1 条 `/ddz/` → `localhost:8080` 代理，不影响其他站点
 
-## 部署命令速记
-```
-# 方式1: 运行 deploy_lwt.js 脚本（推荐）
-node deploy_lwt.js
+## 热部署 & 回退
 
-# 方式2: 手动
+修改代码后，本地测试通过，执行以下命令即可自动部署到服务器：
+
+### 部署（一键热部署）
+```bash
+node deploy.js
+```
+自动完成：备份当前版本 → 上传文件 → npm install → PM2 重启 Node 服务 → 验证
+
+### 回退（恢复上一版本）
+```bash
+node rollback.js
+```
+自动完成：检查备份 → 恢复文件 → PM2 重启 → 验证
+
+### 手动部署命令速记
+```
+# scp 上传 + 重启
 scp -r e:/code/game/* lwt@47.112.7.97:/home/lwt/ddz/
-ssh lwt@47.112.7.97 "pkill -f 'node server.js'; cd /home/lwt/ddz && npm install && nohup node server.js > /home/lwt/ddz.log 2>&1 &"
+ssh lwt@47.112.7.97 "cd /home/lwt/ddz && npm install && pm2 restart ddz"
 ```
 
 ## lwt nginx 管理（PM2守护，自动重启）
