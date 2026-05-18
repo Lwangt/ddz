@@ -522,22 +522,35 @@ const GameRenderer = (() => {
     s._buttonLayout = btns;
 
     for (const btn of btns) {
-      // Button background with hover simulation
-      let bgColor;
-      if (btn.disabled) {
-        bgColor = 'rgba(255,255,255,0.08)';
-      } else if (btn.type === 'primary') {
-        bgColor = '#ffc107';
-      } else if (btn.type === 'danger') {
-        bgColor = '#ff5252';
-      } else if (btn.type === 'bid') {
-        bgColor = '#2196f3';
-      } else {
-        bgColor = 'rgba(255,255,255,0.18)';
+      const r = btn.h / 2; // pill shape
+
+      // Shadow
+      if (!btn.disabled) {
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 4 * sc;
+        ctx.shadowOffsetY = 2 * sc;
       }
 
-      ctx.fillStyle = bgColor;
-      const r = 8 * sc;
+      // Background gradient
+      const grad = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.h);
+      if (btn.disabled) {
+        grad.addColorStop(0, 'rgba(255,255,255,0.06)');
+        grad.addColorStop(1, 'rgba(255,255,255,0.04)');
+      } else if (btn.type === 'primary') {
+        grad.addColorStop(0, '#FF9800');
+        grad.addColorStop(1, '#F57C00');
+      } else if (btn.type === 'danger') {
+        grad.addColorStop(0, '#EF5350');
+        grad.addColorStop(1, '#D32F2F');
+      } else if (btn.type === 'bid') {
+        grad.addColorStop(0, '#42A5F5');
+        grad.addColorStop(1, '#1E88E5');
+      } else {
+        grad.addColorStop(0, 'rgba(255,255,255,0.18)');
+        grad.addColorStop(1, 'rgba(255,255,255,0.10)');
+      }
+      ctx.fillStyle = grad;
+
       ctx.beginPath();
       ctx.moveTo(btn.x + r, btn.y);
       ctx.lineTo(btn.x + btn.w - r, btn.y);
@@ -551,19 +564,26 @@ const GameRenderer = (() => {
       ctx.closePath();
       ctx.fill();
 
-      // Subtle top highlight on active buttons
-      if (!btn.disabled && (btn.type === 'primary' || btn.type === 'danger')) {
-        const grad = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.h * 0.5);
-        grad.addColorStop(0, 'rgba(255,255,255,0.2)');
-        grad.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = grad;
+      ctx.shadowColor = 'transparent';
+
+      // Top highlight
+      if (!btn.disabled) {
+        const hl = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.h * 0.45);
+        hl.addColorStop(0, 'rgba(255,255,255,0.3)');
+        hl.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = hl;
         ctx.fill();
       }
 
+      // Border
+      ctx.strokeStyle = btn.disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 1.2 * sc;
+      ctx.stroke();
+
       // Text
-      ctx.fillStyle = btn.disabled ? 'rgba(255,255,255,0.3)'
-        : ((btn.type === 'primary') ? '#1a1a1a' : '#fff');
-      ctx.font = `bold ${isMob ? 13 : 15 * sc}px "Microsoft YaHei", sans-serif`;
+      ctx.fillStyle = btn.disabled ? 'rgba(255,255,255,0.25)'
+        : ((btn.type === 'primary' || btn.type === 'danger' || btn.type === 'bid') ? '#fff' : '#fff');
+      ctx.font = `bold ${isMob ? 13 : 16 * sc}px "Microsoft YaHei", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);

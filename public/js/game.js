@@ -643,6 +643,7 @@
     }
 
     gameArea = { x: gx, y: gy, w: gw, h: gh };
+    window.gameArea = gameArea; // expose for input coordinate conversion
 
     // Canvas fills the full window, letterboxed area rendered by CSS
     canvas.width = cssW * dpr;
