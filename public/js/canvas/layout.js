@@ -70,11 +70,12 @@ const Layout = (() => {
   // Buttons
   function buttonArea() {
     const p0 = p0Area();
+    const btnH = Math.max(46, 52 * scale);
     return {
-      x: w * 0.12,
+      x: w * 0.08,
       y: p0.y + p0.h + 4 * scale,
-      w: w * 0.76,
-      h: 48 * scale
+      w: w * 0.84,
+      h: Math.min(btnH, h - p0.y - p0.h - 8 * scale) // don't overflow screen
     };
   }
 
@@ -95,7 +96,7 @@ const Layout = (() => {
 
   // ── Card positioning ─────────────────────────────────────
 
-  const HAND_OVERLAP = 0.62;
+  const HAND_OVERLAP = 0.55;  // Less overlap = more visible area per card
 
   function getHandPositions(count) {
     if (count === 0) return [];
@@ -195,12 +196,15 @@ const Layout = (() => {
 
   function hitTestHand(mx, my, handSize) {
     const positions = getHandPositions(handSize);
-    const expand = 6;
+    const expand = 10;
+    // Check from rightmost to leftmost (z-order: right cards on top)
     for (let i = positions.length - 1; i >= 0; i--) {
       const p = positions[i];
       const isLast = (i === positions.length - 1);
-      const clickR = isLast ? p.x + p.w : p.x + p.w * (1 - HAND_OVERLAP);
-      if (mx >= p.x - expand && mx <= clickR + expand && my >= p.y - expand && my <= p.y + p.h + expand) {
+      // Clickable area: left portion (visible) for all but last; full width for last
+      const clickL = p.x;
+      const clickR = isLast ? p.x + p.w : p.x + p.w * (1 - HAND_OVERLAP) + expand;
+      if (mx >= clickL - expand && mx <= clickR && my >= p.y - expand && my <= p.y + p.h + expand) {
         return i;
       }
     }
@@ -209,7 +213,7 @@ const Layout = (() => {
 
   function hitTestButton(mx, my, buttonLayout) {
     if (!buttonLayout) return null;
-    const expand = 8;
+    const expand = 14;
     for (const btn of buttonLayout) {
       if (mx >= btn.x - expand && mx <= btn.x + btn.w + expand &&
           my >= btn.y - expand && my <= btn.y + btn.h + expand) {
