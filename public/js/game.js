@@ -106,16 +106,16 @@
   function onBidTurn(data) {
     state.phase = 'BIDDING';
     state.currentBid = data.currentBid;
-    state.canBid = data.canBid || [];
-    state.myTurn = (data.seatIndex === state.mySeat);
+    state.canBid = data.canBid || [1, 2, 3];
+    // Simultaneous: everyone can bid
+    state.myTurn = true;
+    state.bidResponses = {};
 
     clearTurnTimer();
-    if (state.myTurn) {
-      state.turnTimeTotal = 15;
-      state.turnTimeLeft = 15;
-      startTurnTimer();
-      showToast('请叫地主', 1500);
-    }
+    state.turnTimeTotal = data.timeout || 15;
+    state.turnTimeLeft = state.turnTimeTotal;
+    startTurnTimer();
+    showToast('请叫地主', 1500);
   }
 
   function onBidMade(data) {

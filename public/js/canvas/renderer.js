@@ -583,7 +583,6 @@ const GameRenderer = (() => {
       const types = ['secondary', 'bid', 'primary', 'danger'];
       const bW = (area.w - 9 * sc) / 4;
       for (let i = 0; i < 4; i++) {
-        const canBid = i === 0 || s.canBid.includes(i);
         btns.push({
           id: i === 0 ? 'bid_0' : `bid_${i}`,
           label: labels[i],
@@ -592,7 +591,7 @@ const GameRenderer = (() => {
           w: bW,
           h: area.h,
           type: types[i],
-          disabled: i > 0 && !canBid
+          disabled: false
         });
       }
     } else if (s.phase === 'PLAYING' && s.myTurn) {

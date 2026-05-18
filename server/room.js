@@ -12,10 +12,8 @@ class Room {
     this.testMode = false;
     this.state = C.PHASE_WAITING;
 
-    // Bidding state
-    this.bidStartIndex = 0;
-    this.bidQueue = [];          // [seatIndex, seatIndex, seatIndex] order to bid
-    this.bidPointer = 0;         // index into bidQueue
+    // Bidding state (simultaneous)
+    this.bidResponses = {};      // { seatIndex: amount } — collect all 3
     this.currentBid = 0;
     this.highestBidderIndex = -1;
 
@@ -27,6 +25,7 @@ class Room {
     this.passCount = 0;
     this.multiplier = 1;
     this.roundCount = 0;
+    this.springBroken = false;   // spring = landlord won without farmers ever playing
 
     // Deck
     this.bonusCards = [];
@@ -174,65 +173,43 @@ class Room {
 
   startBidding() {
     this.state = C.PHASE_BIDDING;
-    this.bidStartIndex = Math.floor(Math.random() * 3);
-    this.bidQueue = [
-      this.bidStartIndex,
-      (this.bidStartIndex + 1) % 3,
-      (this.bidStartIndex + 2) % 3,
-    ];
-    this.bidPointer = 0;
     this.currentBid = 0;
     this.highestBidderIndex = -1;
-
-    // Reset bid amounts
+    this.bidResponses = {};
     this.players.forEach(p => { p.bidAmount = 0; });
 
-    this.sendBidTurn();
-  }
-
-  sendBidTurn() {
-    if (this.bidPointer >= this.bidQueue.length) {
-      this.finishBidding();
-      return;
-    }
-
-    const seatIndex = this.bidQueue[this.bidPointer];
-    const player = this.getPlayerBySeat(seatIndex);
-    if (!player || (!player.isBot && !player.isConnected)) {
-      // Auto-pass for disconnected human player
-      this.processBid(player ? player.id : null, 0);
-      return;
-    }
-
-    const canBid = [];
-    for (let i = this.currentBid + 1; i <= C.BID_MAX; i++) {
-      canBid.push(i);
-    }
-
+    // All players bid simultaneously
     this.toRoom('bid_turn', {
-      seatIndex,
-      playerName: player.name,
-      currentBid: this.currentBid,
-      bidRound: this.bidPointer,
-      canBid,
-      canPass: !(this.currentBid === 0 && this.bidPointer === 2),
+      mode: 'simultaneous',
+      canBid: [1, 2, 3],
+      timeout: C.BID_TIMEOUT / 1000,
+      currentBid: 0,
+      players: this.players.map(p => ({ seatIndex: p.seatIndex, name: p.name })),
     });
 
-    // Bot: auto-decide after a delay
-    if (player.isBot && player.botStrategy) {
-      this.clearBidTimer();
-      const delay = 800 + Math.random() * 1200;
-      this.bidTimer = setTimeout(() => {
-        const bidAmount = player.botStrategy.decideBid(this.currentBid);
-        this.processBid(player.id, bidAmount);
-      }, delay);
-      return;
+    // Schedule bot bids
+    for (const p of this.players) {
+      if (p.isBot && p.botStrategy) {
+        const delay = 500 + Math.random() * 1500;
+        setTimeout(() => {
+          if (this.state === C.PHASE_BIDDING) {
+            const amount = p.botStrategy.decideBid(0);
+            this.processBid(p.id, amount);
+          }
+        }, delay);
+      }
     }
 
-    // Human: auto-pass timeout
+    // Auto-timeout for humans who don't bid
     this.clearBidTimer();
     this.bidTimer = setTimeout(() => {
-      this.processBid(player.id, 0);
+      // Auto-pass for anyone who hasn't bid yet
+      for (const p of this.players) {
+        if (p.isBot) continue;
+        if (!(p.seatIndex in this.bidResponses)) {
+          this.processBid(p.id, 0);
+        }
+      }
     }, C.BID_TIMEOUT);
   }
 
@@ -242,60 +219,62 @@ class Room {
 
   processBid(socketId, amount) {
     if (this.state !== C.PHASE_BIDDING) return;
-    if (this.bidPointer >= this.bidQueue.length) return;
 
-    const expectedSeat = this.bidQueue[this.bidPointer];
-    const player = this.players.find(p => p.seatIndex === expectedSeat);
+    const player = this.players.find(p => p.id === socketId);
     if (!player) return;
-    if (socketId && player.id !== socketId) return; // not your turn
-
-    this.clearBidTimer();
+    if (this.bidResponses[player.seatIndex] !== undefined) return; // already bid
 
     amount = parseInt(amount) || 0;
+    if (amount < 0 || amount > C.BID_MAX) amount = 0;
 
-    if (amount === 0) {
-      // Pass
-      player.bidAmount = 0;
-    } else {
-      // Validate bid
-      if (amount <= this.currentBid || amount > C.BID_MAX) {
-        this.toPlayer(socketId, 'error', { message: `叫分必须大于 ${this.currentBid} 且不超过 ${C.BID_MAX}` });
-        this.sendBidTurn(); // let them retry
-        return;
-      }
-      amount = Math.min(amount, C.BID_MAX);
-      player.bidAmount = amount;
+    player.bidAmount = amount;
+    this.bidResponses[player.seatIndex] = amount;
+    if (amount > this.currentBid) {
       this.currentBid = amount;
       this.highestBidderIndex = player.seatIndex;
-
-      // If someone bids 3, they win immediately
-      if (amount === C.BID_MAX) {
-        this.bidPointer = this.bidQueue.length; // skip remaining
-      }
     }
 
     this.toRoom('bid_made', {
       seatIndex: player.seatIndex,
       playerName: player.name,
-      amount: player.bidAmount,
+      amount: amount,
       currentBid: this.currentBid,
     });
 
-    this.bidPointer++;
-    setTimeout(() => this.sendBidTurn(), 500); // brief delay between bids
-  }
-
-  finishBidding() {
-    this.clearBidTimer();
-
-    if (this.highestBidderIndex === -1) {
-      // All passed: redeal
-      this.toRoom('redeal_message', { message: '所有人未叫地主，重新发牌' });
-      setTimeout(() => this.redeal(), 1000);
+    // If someone bids 3, finish immediately
+    if (amount === C.BID_MAX) {
+      this.clearBidTimer();
+      setTimeout(() => this.finishBidding(), 300);
       return;
     }
 
-    this.determineLandlord();
+    // Check if all 3 have responded
+    if (Object.keys(this.bidResponses).length >= 3) {
+      this.clearBidTimer();
+      setTimeout(() => this.finishBidding(), 300);
+    }
+  }
+
+  finishBidding() {
+    if (this.state !== C.PHASE_BIDDING) return;
+    this.clearBidTimer();
+
+    // Auto-fill missing responses as pass
+    for (const p of this.players) {
+      if (!(p.seatIndex in this.bidResponses)) {
+        p.bidAmount = 0;
+        this.bidResponses[p.seatIndex] = 0;
+        this.toRoom('bid_made', { seatIndex: p.seatIndex, playerName: p.name, amount: 0, currentBid: this.currentBid });
+      }
+    }
+
+    if (this.highestBidderIndex === -1 || this.currentBid === 0) {
+      this.toRoom('redeal_message', { message: '所有人未叫地主，重新发牌' });
+      setTimeout(() => this.redeal(), 1500);
+      return;
+    }
+
+    setTimeout(() => this.determineLandlord(), 500);
   }
 
   redeal() {
@@ -447,6 +426,9 @@ class Room {
 
     // Apply play
     player.removeCards(cardIds);
+    // Spring: if landlord plays and farmers never played, spring is still alive
+    // Counter-spring: if farmers win and landlord only played first round
+    if (!player.isLandlord) this.springBroken = true;
     this.lastPlayedBy = player.seatIndex;
     this.lastPlayedCards = cardIds;
     this.lastPattern = result.pattern;
@@ -631,12 +613,23 @@ class Room {
     const isLandlordWin = winner.isLandlord;
     const baseBid = Math.max(this.currentBid, 1);
 
-    // Calculate score changes
+    // Spring detection
+    let springMultiplier = 1;
+    if (isLandlordWin && !this.springBroken) {
+      springMultiplier = 2; // 春天：地主获胜且农民未出过牌
+      this.toRoom('spring_event', { type: 'spring' });
+    } else if (!isLandlordWin && this.roundCount <= 1) {
+      springMultiplier = 2; // 反春天：农民获胜且地主只出过一轮
+      this.toRoom('spring_event', { type: 'counter_spring' });
+    }
+
+    // Standard scoring: 底分 × 炸弹倍数 × 春天倍数
+    const totalMultiplier = this.multiplier * springMultiplier;
     const scoreChanges = this.players.map((p, i) => {
       if (isLandlordWin) {
-        return p.isLandlord ? baseBid * 2 * this.multiplier : -baseBid * this.multiplier;
+        return p.isLandlord ? baseBid * 2 * totalMultiplier : -baseBid * totalMultiplier;
       } else {
-        return p.isLandlord ? -baseBid * 2 * this.multiplier : baseBid * this.multiplier;
+        return p.isLandlord ? -baseBid * 2 * totalMultiplier : baseBid * totalMultiplier;
       }
     });
 
@@ -655,7 +648,10 @@ class Room {
         total: p.score,
       })),
       multiplier: this.multiplier,
+      springMultiplier,
+      totalMultiplier,
       baseBid,
+      spring: springMultiplier > 1 ? (isLandlordWin ? 'spring' : 'counter_spring') : null,
       landlordSeat: this.players.find(p => p.isLandlord).seatIndex,
       landlordName: this.players.find(p => p.isLandlord).name,
     });

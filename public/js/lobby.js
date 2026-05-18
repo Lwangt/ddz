@@ -185,20 +185,26 @@
   copyBtn.addEventListener('click', () => {
     const link = generateShareLink(myRoomCode);
     const text = `来玩斗地主！房间号：${myRoomCode}\n${link}`;
-    navigator.clipboard.writeText(text).then(() => {
+    // Try modern API first, fallback to execCommand for HTTP
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(copySuccess).catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+    function fallbackCopy() {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); copySuccess(); } catch(e) { copyBtn.textContent = '复制失败'; }
+      document.body.removeChild(ta);
+    }
+    function copySuccess() {
       copyBtn.textContent = '已复制!';
       copyBtn.classList.add('copied');
-      setTimeout(() => {
-        copyBtn.textContent = '复制链接';
-        copyBtn.classList.remove('copied');
-      }, 2000);
-    }).catch(() => {
-      navigator.clipboard.writeText(link).then(() => {
-        copyBtn.textContent = '已复制!';
-        copyBtn.classList.add('copied');
-        setTimeout(() => { copyBtn.textContent = '复制链接'; copyBtn.classList.remove('copied'); }, 2000);
-      });
-    });
+      setTimeout(() => { copyBtn.textContent = '复制链接'; copyBtn.classList.remove('copied'); }, 2000);
+    }
   });
 
   // Start game
