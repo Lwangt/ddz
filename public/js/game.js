@@ -99,6 +99,7 @@
     showWaiting(false);
     hideGameOver();
     showToast('游戏开始，准备叫地主', 2000);
+    Sound.deal();
     console.log('[game] Starting. Seat:', state.mySeat, 'Hand:', state.hand.length);
   }
 
@@ -119,6 +120,7 @@
 
   function onBidMade(data) {
     state.currentBid = data.currentBid;
+    Sound.bid();
     // Track bid result for display
     if (!state.bidResults) state.bidResults = [];
     state.bidResults.push({
@@ -166,6 +168,7 @@
     state.currentPlayerIndex = data.seatIndex;
     state.myTurn = (data.seatIndex === state.mySeat);
     state.selectedCards = new Set();
+    if (state.myTurn) Sound.turn();
 
     clearTurnTimer();
     if (state.myTurn) {
@@ -212,16 +215,21 @@
 
     clearTurnTimer();
 
+    Sound.playCard();
     if (data.pattern && (data.pattern.type === 'bomb' || data.pattern.type === 'rocket')) {
       const name = player ? player.name : '';
       const typeName = data.pattern.type === 'rocket' ? '🚀 火箭！' : '💣 炸弹！';
       showToast(`${name} 出了${typeName} 倍数×${state.multiplier}`, 2500);
+      if (data.pattern.type === 'rocket') Sound.rocket();
+      else Sound.bomb();
+      if (window.triggerBombEffect) window.triggerBombEffect();
     }
   }
 
   function onPlayerPassed(data) {
     state.passCount++;
     state.playerLastActions[data.seatIndex] = { action: 'pass' };
+    Sound.pass();
     // If we just passed, end our turn
     if (data.seatIndex === state.mySeat) {
       state.myTurn = false;
@@ -242,6 +250,12 @@
   function onGameOver(data) {
     state.phase = 'FINISHED';
     clearTurnTimer();
+    if (data.winnerSeat === state.mySeat) {
+      Sound.win();
+      if (window.triggerWinEffect) window.triggerWinEffect();
+    } else {
+      Sound.lose();
+    }
     showGameOver(data);
 
     if (data.scores) {
@@ -693,6 +707,7 @@
   // ── Init ──────────────────────────────────────────────────
 
   function init() {
+    Sound.init();
     SocketManager.connect();
 
     const params = new URLSearchParams(window.location.search);

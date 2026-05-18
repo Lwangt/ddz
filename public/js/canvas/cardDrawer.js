@@ -1,21 +1,16 @@
-// Enhanced card rendering with gradients, layered shadows, and polished visuals
+// Polished card rendering — premium casino-quality card faces
 const CardDrawer = (() => {
-  const SUIT_SYMBOLS = ['♠', '♥', '♣', '♦'];
+  const SUITS = ['♠', '♥', '♣', '♦'];
   const SUIT_COLORS = ['#1a1a1a', '#d32f2f', '#1a1a1a', '#d32f2f'];
-  const SUIT_LIGHT = ['#555', '#ff6b6b', '#555', '#ff6b6b'];
   const RANK_NAMES = ['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
 
   function decode(id) {
     if (id === 52) return { suit: -1, rank: 13, isJoker: true, jokerType: 'small' };
     if (id === 53) return { suit: -1, rank: 14, isJoker: true, jokerType: 'big' };
-    return {
-      suit: Math.floor(id / 13),
-      rank: id % 13,
-      isJoker: false
-    };
+    return { suit: Math.floor(id / 13), rank: id % 13, isJoker: false };
   }
 
-  function roundRect(ctx, x, y, w, h, r) {
+  function rr(ctx, x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.lineTo(x + w - r, y);
@@ -29,66 +24,53 @@ const CardDrawer = (() => {
     ctx.closePath();
   }
 
-  // Draw layered shadow under card
-  function drawShadow(ctx, x, y, w, h, s, lifted) {
-    const l = lifted ? 15 * s : 4 * s;
-    ctx.save();
-    // Outer soft shadow
-    ctx.shadowColor = 'rgba(0,0,0,0.25)';
-    ctx.shadowBlur = l;
-    ctx.shadowOffsetX = 2 * s;
-    ctx.shadowOffsetY = (2 + (lifted ? 6 : 0)) * s;
-    roundRect(ctx, x, y, w, h, 6 * s);
-    ctx.fillStyle = 'rgba(0,0,0,0.01)';
-    ctx.fill();
-    ctx.restore();
-  }
-
   function drawCardFace(ctx, cardId, x, y, w, h, selected) {
     const card = decode(cardId);
-    const s = Math.min(w, h) / 70;
-    const lift = selected ? -22 * s : 0;
+    const s = Math.min(w, h) / 75;
+    const lift = selected ? -26 * s : 0;
 
     ctx.save();
     ctx.translate(x, y + lift);
 
-    // Layered shadow
-    drawShadow(ctx, 0, 0, w, h, s, selected);
-
-    // Card body with subtle gradient
-    const grad = ctx.createLinearGradient(0, 0, w, h);
-    grad.addColorStop(0, '#ffffff');
-    grad.addColorStop(0.5, '#fafafa');
-    grad.addColorStop(1, '#f0f0f0');
-    roundRect(ctx, 0, 0, w, h, 6 * s);
-    ctx.fillStyle = grad;
+    // Outer shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = selected ? 14 * s : 6 * s;
+    ctx.shadowOffsetX = 2 * s;
+    ctx.shadowOffsetY = selected ? 6 * s : 3 * s;
+    rr(ctx, 0, 0, w, h, 7 * s);
+    ctx.fillStyle = '#ffffff';
     ctx.fill();
+    ctx.shadowColor = 'transparent';
 
-    // Inner subtle border
-    roundRect(ctx, 1.5 * s, 1.5 * s, w - 3 * s, h - 3 * s, 5 * s);
-    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-    ctx.lineWidth = 0.8 * s;
-    ctx.stroke();
-
-    // Outer border
-    roundRect(ctx, 0, 0, w, h, 6 * s);
-    ctx.strokeStyle = '#666';
+    // Card border
+    rr(ctx, 0, 0, w, h, 7 * s);
+    ctx.strokeStyle = '#888';
     ctx.lineWidth = 1.2 * s;
     ctx.stroke();
 
+    // Inner bevel (3D effect)
+    rr(ctx, 2 * s, 2 * s, w - 4 * s, h - 4 * s, 5 * s);
+    const bevelGrad = ctx.createLinearGradient(0, 0, w, h);
+    bevelGrad.addColorStop(0, 'rgba(255,255,255,0.4)');
+    bevelGrad.addColorStop(0.5, 'rgba(255,255,255,0)');
+    bevelGrad.addColorStop(1, 'rgba(0,0,0,0.1)');
+    ctx.strokeStyle = bevelGrad;
+    ctx.lineWidth = 2 * s;
+    ctx.stroke();
+
     if (card.isJoker) {
-      drawJokerFace(ctx, card, w, h, s);
+      drawJoker(ctx, card, w, h, s);
     } else {
-      drawStandardFace(ctx, card, w, h, s);
+      drawStandard(ctx, card, w, h, s);
     }
 
-    // Selection highlight
+    // Selection glow
     if (selected) {
-      roundRect(ctx, -1 * s, -1 * s, w + 2 * s, h + 2 * s, 7 * s);
+      rr(ctx, -2 * s, -2 * s, w + 4 * s, h + 4 * s, 8 * s);
       ctx.strokeStyle = '#FFD700';
-      ctx.lineWidth = 3 * s;
-      ctx.shadowColor = 'rgba(255,215,0,0.7)';
-      ctx.shadowBlur = 10 * s;
+      ctx.lineWidth = 3.5 * s;
+      ctx.shadowColor = 'rgba(255,215,0,0.9)';
+      ctx.shadowBlur = 16 * s;
       ctx.stroke();
       ctx.shadowColor = 'transparent';
     }
@@ -96,146 +78,146 @@ const CardDrawer = (() => {
     ctx.restore();
   }
 
-  function drawStandardFace(ctx, card, w, h, s) {
+  function drawStandard(ctx, card, w, h, s) {
     const color = SUIT_COLORS[card.suit];
-    const lightColor = SUIT_LIGHT[card.suit];
-    const rankTxt = RANK_NAMES[card.rank];
-    const suitTxt = SUIT_SYMBOLS[card.suit];
+    const rank = RANK_NAMES[card.rank];
+    const suit = SUITS[card.suit];
+    const fs = 15 * s;
 
-    const fontSize = 14 * s;
-    const suitFontSize = 11 * s;
-
-    // Top-left rank + suit
+    // Top-left corner
     ctx.fillStyle = color;
-    ctx.font = `bold ${fontSize}px "Microsoft YaHei", "PingFang SC", sans-serif`;
-    ctx.fillText(rankTxt, 5 * s, 17 * s);
-    ctx.font = `${suitFontSize}px "Microsoft YaHei", sans-serif`;
-    ctx.fillText(suitTxt, 6 * s, 32 * s);
+    ctx.font = `bold ${fs}px "Microsoft YaHei", sans-serif`;
+    ctx.fillText(rank, 5 * s, 18 * s);
+    ctx.font = `${fs * 0.75}px "Microsoft YaHei", sans-serif`;
+    ctx.fillText(suit, 6 * s, 32 * s);
 
-    // Bottom-right (rotated 180°)
+    // Bottom-right (rotated)
     ctx.save();
     ctx.translate(w - 5 * s, h - 5 * s);
     ctx.rotate(Math.PI);
     ctx.fillStyle = color;
-    ctx.font = `bold ${fontSize}px "Microsoft YaHei", "PingFang SC", sans-serif`;
-    ctx.fillText(rankTxt, 0, 14 * s);
-    ctx.font = `${suitFontSize}px "Microsoft YaHei", sans-serif`;
-    ctx.fillText(suitTxt, 1 * s, 27 * s);
+    ctx.font = `bold ${fs}px "Microsoft YaHei", sans-serif`;
+    ctx.fillText(rank, 0, 15 * s);
+    ctx.font = `${fs * 0.75}px "Microsoft YaHei", sans-serif`;
+    ctx.fillText(suit, 2 * s, 27 * s);
     ctx.restore();
 
-    // Center suit symbol — larger, semi-transparent for elegance
-    ctx.fillStyle = lightColor;
-    ctx.globalAlpha = 0.45;
-    ctx.font = `bold ${28 * s}px "Microsoft YaHei", sans-serif`;
+    // Center icon — large elegant suit
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.3;
+    ctx.font = `bold ${fs * 1.8}px "Microsoft YaHei", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(suitTxt, w / 2, h / 2 + 2 * s);
+    ctx.fillText(suit, w / 2, h / 2 + 2 * s);
+
+    // Small center pip
+    ctx.globalAlpha = 1;
+    ctx.font = `bold ${fs * 1.2}px "Microsoft YaHei", sans-serif`;
+    ctx.fillText(suit, w / 2, h / 2 + 2 * s);
     ctx.textAlign = 'start';
     ctx.textBaseline = 'alphabetic';
-    ctx.globalAlpha = 1;
   }
 
-  function drawJokerFace(ctx, card, w, h, s) {
+  function drawJoker(ctx, card, w, h, s) {
     const isBig = card.jokerType === 'big';
-    const darkColor = '#1a1a1a';
-    const redColor = '#c62828';
+    const color = isBig ? '#c62828' : '#1a1a1a';
 
-    // Joker gradient background
-    const grad = ctx.createLinearGradient(0, 0, w, h * 0.3);
-    grad.addColorStop(0, isBig ? 'rgba(200,30,30,0.12)' : 'rgba(0,0,0,0.06)');
-    grad.addColorStop(1, 'rgba(255,255,255,0)');
-    roundRect(ctx, 0, 0, w, h, 6 * s);
-    ctx.fillStyle = grad;
+    // Subtle background tint
+    rr(ctx, 0, 0, w, h, 7 * s);
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, isBig ? 'rgba(200,30,30,0.08)' : 'rgba(0,0,0,0.05)');
+    bg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = bg;
     ctx.fill();
 
-    const jokerColor = isBig ? redColor : darkColor;
-    const label = isBig ? '大' : '小';
-    const fullLabel = isBig ? '大王' : '小王';
-
-    // Top-left mini label
-    ctx.fillStyle = jokerColor;
+    // Top label
+    const label = isBig ? '大王' : '小王';
+    ctx.fillStyle = color;
     ctx.font = `bold ${13 * s}px "Microsoft YaHei", sans-serif`;
-    ctx.fillText(fullLabel, 4 * s, 16 * s);
+    ctx.fillText(label, 4 * s, 18 * s);
 
-    // Large center 王 character
-    ctx.fillStyle = jokerColor;
+    // Center 王 character
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `bold ${36 * s}px "Microsoft YaHei", "PingFang SC", sans-serif`;
-    ctx.fillText('王', w / 2, h / 2 - 5 * s);
+    ctx.font = `bold ${38 * s}px "Microsoft YaHei", sans-serif`;
+    ctx.fillText('王', w / 2, h / 2 - 3 * s);
 
     // Subtitle
-    ctx.font = `bold ${15 * s}px "Microsoft YaHei", sans-serif`;
-    ctx.fillText(label, w / 2, h / 2 + 24 * s);
+    ctx.font = `bold ${14 * s}px "Microsoft YaHei", sans-serif`;
+    ctx.fillText(isBig ? '大' : '小', w / 2, h / 2 + 25 * s);
 
-    // Decorative corner stars
-    ctx.font = `${10 * s}px "Microsoft YaHei", sans-serif`;
+    // Corner stars
+    ctx.font = `${11 * s}px "Microsoft YaHei", sans-serif`;
     const star = isBig ? '★' : '☆';
-    ctx.fillText(star, w - 14 * s, 14 * s);
-    ctx.fillText(star, 14 * s, h - 10 * s);
+    const starColor = isBig ? '#ff5252' : '#888';
+    ctx.fillStyle = starColor;
+    ctx.fillText(star, w - 16 * s, 17 * s);
+    ctx.fillText(star, 16 * s, h - 12 * s);
 
     ctx.textAlign = 'start';
     ctx.textBaseline = 'alphabetic';
   }
 
   function drawCardBack(ctx, x, y, w, h) {
-    const s = Math.min(w, h) / 70;
+    const s = Math.min(w, h) / 75;
     ctx.save();
     ctx.translate(x, y);
 
     // Shadow
-    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
     ctx.shadowBlur = 4 * s;
     ctx.shadowOffsetX = 1 * s;
     ctx.shadowOffsetY = 2 * s;
-    roundRect(ctx, 0, 0, w, h, 5 * s);
+    rr(ctx, 0, 0, w, h, 6 * s);
     ctx.fillStyle = '#1a237e';
     ctx.fill();
     ctx.shadowColor = 'transparent';
 
     // Outer border
-    roundRect(ctx, 0, 0, w, h, 5 * s);
+    rr(ctx, 0, 0, w, h, 6 * s);
     ctx.strokeStyle = '#0d1555';
     ctx.lineWidth = 2 * s;
     ctx.stroke();
 
-    // Inner border 1
-    const inset1 = 5 * s;
-    roundRect(ctx, inset1, inset1, w - 2 * inset1, h - 2 * inset1, 3 * s);
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    // Inner white border
+    rr(ctx, 5 * s, 5 * s, w - 10 * s, h - 10 * s, 3 * s);
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
     ctx.lineWidth = 1.2 * s;
     ctx.stroke();
 
-    // Inner border 2 (dashed)
-    const inset2 = 10 * s;
-    roundRect(ctx, inset2, inset2, w - 2 * inset2, h - 2 * inset2, 2 * s);
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    // Dashed inner border
+    rr(ctx, 10 * s, 10 * s, w - 20 * s, h - 20 * s, 2 * s);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
     ctx.lineWidth = 0.8 * s;
     ctx.setLineDash([3 * s, 3 * s]);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Center diamond motif
+    // Center diamond pattern
     const cx = w / 2, cy = h / 2;
-    const d = Math.min(w, h) * 0.25;
-    ctx.fillStyle = 'rgba(255,255,255,0.1)';
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - d);
-    ctx.lineTo(cx + d * 0.6, cy);
-    ctx.lineTo(cx, cy + d);
-    ctx.lineTo(cx - d * 0.6, cy);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    const d = Math.min(w, h) * 0.22;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(-d / 2, -d / 2, d, d);
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
     ctx.lineWidth = 1 * s;
+    ctx.strokeRect(-d / 2, -d / 2, d, d);
+    ctx.restore();
+
+    // Inner circle
+    ctx.beginPath();
+    ctx.arc(cx, cy, d * 0.38, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.stroke();
 
-    // Tiny center symbol
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    ctx.font = `${16 * s}px "Microsoft YaHei", sans-serif`;
+    // Tiny center spade
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.font = `${14 * s}px "Microsoft YaHei", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🂠', cx, cy);
+    ctx.fillText('♠', cx, cy);
     ctx.textAlign = 'start';
     ctx.textBaseline = 'alphabetic';
 

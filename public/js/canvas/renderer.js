@@ -39,6 +39,7 @@ const GameRenderer = (() => {
     drawButtons();
     drawTimerBar();
     drawToast();
+    drawEffects();
     ctx.restore();
   }
 
@@ -722,6 +723,78 @@ const GameRenderer = (() => {
     ctx.textBaseline = 'alphabetic';
     ctx.globalAlpha = 1;
   }
+
+  // ── Special effects ──────────────────────────────────────
+
+  let flashAlpha = 0;
+  let particles = [];
+  let lastBombTime = 0;
+  let lastWinTime = 0;
+
+  function triggerBombFlash() {
+    flashAlpha = 0.35;
+    lastBombTime = Date.now();
+  }
+
+  function triggerWinParticles(W, H) {
+    lastWinTime = Date.now();
+    const sc = Layout.scale();
+    particles = [];
+    for (let i = 0; i < 40; i++) {
+      particles.push({
+        x: W * 0.1 + Math.random() * W * 0.8,
+        y: H * 0.3 + Math.random() * H * 0.4,
+        vx: (Math.random() - 0.5) * 4 * sc,
+        vy: -Math.random() * 6 * sc - 2 * sc,
+        life: 1,
+        size: 3 * sc + Math.random() * 5 * sc,
+        color: ['#ffd700', '#ff6b6b', '#4caf50', '#2196f3', '#ff9800'][Math.floor(Math.random() * 5)]
+      });
+    }
+  }
+
+  function drawEffects() {
+    const W = Layout.cssW();
+    const H = Layout.cssH();
+    const s = gameState;
+    const now = Date.now();
+
+    // Bomb flash
+    if (flashAlpha > 0) {
+      const elapsed = (now - lastBombTime) / 1000;
+      flashAlpha = Math.max(0, 0.35 - elapsed * 0.5);
+      if (flashAlpha > 0) {
+        ctx.fillStyle = `rgba(255, 50, 50, ${flashAlpha})`;
+        ctx.fillRect(0, 0, W, H);
+        // Also slight shake via shadow
+        const shake = Math.sin(elapsed * 60) * 4 * flashAlpha;
+        ctx.translate(shake, 0);
+      }
+    }
+
+    // Win particles
+    if (particles.length > 0) {
+      const elapsed = (now - lastWinTime) / 1000;
+      let alive = false;
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.08; // gravity
+        p.life -= 0.015;
+        if (p.life <= 0) continue;
+        alive = true;
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      }
+      ctx.globalAlpha = 1;
+      if (!alive) particles = [];
+    }
+  }
+
+  // Expose effect triggers
+  window.triggerBombEffect = triggerBombFlash;
+  window.triggerWinEffect = () => triggerWinParticles(Layout.cssW(), Layout.cssH());
 
   return { init, draw };
 })();
