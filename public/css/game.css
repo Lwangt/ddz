@@ -93,6 +93,14 @@
   vertical-align: middle;
 }
 
+/* Rotate prompt */
+#rotateOverlay {
+  background: rgba(0, 0, 0, 0.9);
+}
+#rotateOverlay .overlay-panel {
+  background: rgba(20, 60, 30, 0.85);
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

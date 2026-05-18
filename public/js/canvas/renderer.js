@@ -22,13 +22,10 @@ const GameRenderer = (() => {
     const W = Layout.cssW();
     const H = Layout.cssH();
 
-    // Clear with identity transform
     ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.restore();
-
-    ctx.save();
+    // Fill game area background (letterbox drawn before us)
+    ctx.fillStyle = '#0a4a1c';
+    ctx.fillRect(0, 0, W, H);
     drawBackground(W, H);
     drawGhostTurnIndicator();
     drawInfoBar();
@@ -94,7 +91,7 @@ const GameRenderer = (() => {
     const s = gameState;
     const ib = Layout.infoBar();
     const sc = Layout.scale();
-    const isMob = Layout.isMobile();
+    const isMob = false; // unified layout, no mobile distinction
 
     ctx.fillStyle = 'rgba(0,0,0,0.65)';
     ctx.fillRect(ib.x, ib.y, ib.w, ib.h);
@@ -162,7 +159,7 @@ const GameRenderer = (() => {
     const s = gameState;
     if (!s.bidResults || s.bidResults.length === 0) return;
     const sc = Layout.scale();
-    const isMob = Layout.isMobile();
+    const isMob = false; // unified layout, no mobile distinction
     const pa = Layout.playArea();
     const now = Date.now();
 
@@ -198,7 +195,7 @@ const GameRenderer = (() => {
     const s = gameState;
     if (!s.players || s.players.length === 0) return;
     const sc = Layout.scale();
-    const isMob = Layout.isMobile();
+    const isMob = false; // unified layout, no mobile distinction
     const ib = Layout.infoBar();
 
     // Position: right side of info bar
@@ -233,7 +230,7 @@ const GameRenderer = (() => {
 
   function drawTopOpponent(player) {
     const sc = Layout.scale();
-    const isMob = Layout.isMobile();
+    const isMob = false; // unified layout, no mobile distinction
     const area = Layout.p2Area();
     const positions = Layout.getOpponentHPositions(player.cardCount);
     const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
@@ -275,7 +272,7 @@ const GameRenderer = (() => {
 
   function drawLeftOpponent(player) {
     const sc = Layout.scale();
-    const isMob = Layout.isMobile();
+    const isMob = false; // unified layout, no mobile distinction
     const area = Layout.p1Area();
     const positions = Layout.getOpponentVPositions(player.cardCount);
     const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
@@ -324,7 +321,7 @@ const GameRenderer = (() => {
     const s = gameState;
     if (!s.playerLastActions || s.phase !== 'PLAYING') return;
     const sc = Layout.scale();
-    const isMob = Layout.isMobile();
+    const isMob = false; // unified layout, no mobile distinction
     const cw = Layout.cardW(), ch = Layout.cardH();
 
     for (const player of s.players) {
@@ -375,7 +372,7 @@ const GameRenderer = (() => {
   function drawPlayArea() {
     const s = gameState;
     const sc = Layout.scale();
-    const isMob = Layout.isMobile();
+    const isMob = false; // unified layout, no mobile distinction
 
     // Show each player's last play or "pass" status
     // We use lastPlayedCards + passCount to determine what to show
@@ -388,7 +385,7 @@ const GameRenderer = (() => {
       if (player) {
         const pos = positions[0];
         ctx.fillStyle = '#ffd700';
-        ctx.font = `bold ${isMob ? 11 : 13 * sc}px "Microsoft YaHei", sans-serif`;
+        ctx.font = `bold ${13 * sc}px "Microsoft YaHei", sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillText(player.name + ' 出牌', pos.x + pos.w / 2,
           pos.y - 4 * sc);
@@ -456,7 +453,7 @@ const GameRenderer = (() => {
     if (!s.bonusCards || s.bonusCards.length === 0) return;
 
     const positions = Layout.getBonusCardPositions();
-    const isMob = Layout.isMobile();
+    const isMob = false; // unified layout, no mobile distinction
     const sc = Layout.scale();
 
     // After landlord is determined, show cards face-up; during bidding show face-down
@@ -487,7 +484,7 @@ const GameRenderer = (() => {
     if (!s.hand || s.hand.length === 0) return;
 
     const positions = Layout.getHandPositions(s.hand.length);
-    const isMob = Layout.isMobile();
+    const isMob = false; // unified layout, no mobile distinction
     const sc = Layout.scale();
 
     // Card count indicator
@@ -518,7 +515,7 @@ const GameRenderer = (() => {
     const s = gameState;
     const area = Layout.buttonArea();
     const sc = Layout.scale();
-    const isMob = Layout.isMobile();
+    const isMob = false; // unified layout, no mobile distinction
 
     const btns = getButtonLayout();
     s._buttonLayout = btns;
@@ -635,7 +632,7 @@ const GameRenderer = (() => {
     const area = Layout.timerArea();
     const progress = s.turnTimeLeft / s.turnTimeTotal;
     const sc = Layout.scale();
-    const isMob = Layout.isMobile();
+    const isMob = false; // unified layout, no mobile distinction
 
     // Background track
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -687,7 +684,7 @@ const GameRenderer = (() => {
 
     const area = Layout.toastArea();
     const sc = Layout.scale();
-    const isMob = Layout.isMobile();
+    const isMob = false; // unified layout, no mobile distinction
 
     // Fade in/out
     let alpha = 1;

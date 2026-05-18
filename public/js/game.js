@@ -599,29 +599,95 @@
   }
 
   // ── Resize ────────────────────────────────────────────────
+  // Fixed 16:9 aspect ratio, uniform scaling for all devices
+
+  const GAME_W = 1200;
+  const GAME_H = 675; // 16:9
+  let gameArea = { x: 0, y: 0, w: GAME_W, h: GAME_H };
 
   function resize() {
     const cssW = window.innerWidth;
     const cssH = window.innerHeight;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2); // cap DPR at 2 for performance
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
+    // Calculate game area maintaining 16:9 aspect ratio
+    const ratio = GAME_W / GAME_H;
+    let gw, gh, gx, gy;
+
+    if (cssW / cssH > ratio) {
+      // Window is wider than 16:9 → letterbox left/right
+      gh = cssH;
+      gw = gh * ratio;
+      gx = (cssW - gw) / 2;
+      gy = 0;
+    } else {
+      // Window is taller than 16:9 → letterbox top/bottom
+      gw = cssW;
+      gh = gw / ratio;
+      gx = 0;
+      gy = (cssH - gh) / 2;
+    }
+
+    gameArea = { x: gx, y: gy, w: gw, h: gh };
+
+    // Canvas fills the full window, letterboxed area rendered by CSS
     canvas.width = cssW * dpr;
     canvas.height = cssH * dpr;
     canvas.style.width = cssW + 'px';
     canvas.style.height = cssH + 'px';
+    canvas.style.background = '#000'; // letterbox color
 
-    Layout.recalculate(cssW, cssH);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    Layout.recalculate(gw, gh);
+    ctx.setTransform(dpr, 0, 0, dpr, gx, gy);
   }
+
+  // ── Orientation lock ──────────────────────────────────────
+
+  let portraitWarned = false;
+  function checkOrientation() {
+    const isPortrait = window.innerHeight > window.innerWidth;
+    const overlay = document.getElementById('rotateOverlay');
+    if (isPortrait && !portraitWarned) {
+      if (overlay) overlay.classList.remove('hidden');
+    } else if (!isPortrait) {
+      if (overlay) overlay.classList.add('hidden');
+      portraitWarned = false;
+    }
+    resize();
+  }
+
+  // Try native orientation lock
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {});
+    }
+  } catch(e) {}
 
   // ── Main loop ─────────────────────────────────────────────
 
   function startLoop() {
     GameRenderer.init(ctx, state);
-    Animator.start(() => GameRenderer.draw());
-    resize();
-    window.addEventListener('resize', resize);
-    window.addEventListener('orientationchange', () => setTimeout(resize, 300));
+    Animator.start(() => {
+      // Draw letterbox background
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = '#0a2e0a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Draw game area outline
+      ctx.fillStyle = '#000';
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const gx = gameArea.x * dpr;
+      const gy = gameArea.y * dpr;
+      const gw = gameArea.w * dpr;
+      const gh = gameArea.h * dpr;
+      ctx.fillRect(gx, gy, gw, gh);
+      ctx.restore();
+      // Now draw game content in the game area
+      GameRenderer.draw();
+    });
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 300));
   }
 
   // ── Init ──────────────────────────────────────────────────

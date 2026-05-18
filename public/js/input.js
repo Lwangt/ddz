@@ -58,8 +58,7 @@ const InputHandler = (() => {
     if (touch) {
       const { x, y } = getCanvasCoords(touch.clientX, touch.clientY);
       const handSize = controller.gameState ? controller.gameState.hand.length : 0;
-      const onCard = Layout.hitTestHand(x, y, handSize) >= 0;
-      if (onCard) e.preventDefault();
+      // Allow scrolling on canvas edges only
     }
   }
 

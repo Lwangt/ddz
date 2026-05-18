@@ -1,223 +1,143 @@
-// Responsive layout calculator — desktop, tablet, and mobile modes
+// Unified layout — fixed 16:9 ratio (1200×675), uniform scaling for all devices
 const Layout = (() => {
   let w, h, scale;
-  let mode = 'desktop';       // 'desktop' | 'tablet' | 'mobile'
-  let baseCardW, baseCardH;   // base card dimensions for current mode
-  let handOverlap = 0.6;      // dynamic overlap ratio
-
-  // Breakpoints
-  const DESKTOP_MIN_W = 900;
-  const TABLET_MIN_W = 600;
 
   function recalculate(cssW, cssH) {
     w = cssW;
     h = cssH;
-
-    if (w >= DESKTOP_MIN_W) {
-      mode = 'desktop';
-      baseCardW = 70;
-      baseCardH = 100;
-      handOverlap = 0.6;
-    } else if (w >= TABLET_MIN_W) {
-      mode = 'tablet';
-      baseCardW = 56;
-      baseCardH = 80;
-      handOverlap = 0.65;
-    } else {
-      mode = 'mobile';
-      baseCardW = 48;
-      baseCardH = 68;
-      handOverlap = 0.72;
-    }
-
-    scale = Math.min(w / 1200, h / 800);
+    scale = Math.min(w / 1200, h / 675);
   }
 
-  function cardW()  { return baseCardW * scale; }
-  function cardH()  { return baseCardH * scale; }
-  function cardR()  { return Math.max(3, 6 * scale); }
-  function isMobile() { return mode === 'mobile'; }
-  function isDesktop() { return mode === 'desktop'; }
-  function getMode() { return mode; }
+  function cardW() { return 75 * scale; }
+  function cardH() { return 108 * scale; }
+  function cardR() { return 6 * scale; }
 
-  // ── Layout zones ─────────────────────────────────────────
+  // ── Zones ────────────────────────────────────────────────
 
   function infoBar() {
-    return { x: 0, y: 0, w, h: Math.max(32, 44 * scale) };
+    return { x: 0, y: 0, w, h: 46 * scale };
   }
 
-  // Top opponent (seat 2 in display)
-  function p2Area() {
-    const cw = cardW(), ch = cardH();
-    const cols = Math.min(10, Math.floor((w * 0.6) / (cw * 0.3)));
-    return {
-      x: (w - cw * cols * 0.3) / 2,
-      y: infoBar().h + Math.max(4, 8 * scale),
-      w: cw * cols * 0.3,
-      h: ch + Math.max(20, 30 * scale)
-    };
-  }
-
-  // Left opponent (seat 1 in display)
-  function p1Area() {
-    const cw = cardW(), ch = cardH();
-    if (isMobile()) {
-      return {
-        x: 4 * scale,
-        y: h * 0.15,
-        w: ch * 0.6 + 4 * scale,
-        h: h * 0.35
-      };
-    }
-    return {
-      x: 6 * scale,
-      y: h * 0.18,
-      w: ch + 8 * scale,
-      h: h * 0.45
-    };
-  }
-
-  // Center play area
+  // Play area (center)
   function playArea() {
-    const p1 = p1Area();
-    const p2 = p2Area();
-    const marginX = isMobile() ? 8 * scale : 20 * scale;
-    const leftEdge = p1.x + p1.w + marginX;
+    const ib = infoBar();
+    const ch = cardH();
+    const margin = 160 * scale; // space for left/right opponents
     return {
-      x: leftEdge,
-      y: p2.y + p2.h + Math.max(4, 6 * scale),
-      w: w - leftEdge * 2 + marginX,
-      h: h * (isMobile() ? 0.28 : 0.32)
+      x: margin,
+      y: ib.y + ib.h + 60 * scale,
+      w: w - margin * 2,
+      h: h - ib.h - ch - 130 * scale - 60 * scale
     };
   }
 
-  // Bottom player (seat 0 = you)
+  // Bottom player (you)
   function p0Area() {
     const ch = cardH();
-    const btnH = isMobile() ? 80 * scale : 52 * scale;
+    const btnH = 52 * scale;
     return {
-      x: w * 0.02,
-      y: h - ch - btnH - Math.max(10, 20 * scale),
-      w: w * 0.96,
-      h: ch + Math.max(20, 40 * scale)
+      x: w * 0.03,
+      y: h - ch - btnH - 18 * scale,
+      w: w * 0.94,
+      h: ch + 30 * scale
     };
   }
 
-  // Action buttons area
+  // Top opponent
+  function p2Area() {
+    const ib = infoBar();
+    const ch = cardH() * 0.7;
+    return {
+      x: w * 0.25,
+      y: ib.y + ib.h + 4 * scale,
+      w: w * 0.5,
+      h: ch + 26 * scale
+    };
+  }
+
+  // Left opponent
+  function p1Area() {
+    const cw = cardW(), ch = cardH();
+    const pa = playArea();
+    return {
+      x: 8 * scale,
+      y: pa.y + 20 * scale,
+      w: ch * 0.6 + 8 * scale,
+      h: pa.h * 0.7
+    };
+  }
+
+  // Buttons
   function buttonArea() {
     const p0 = p0Area();
-    if (isMobile()) {
-      // Minimum 48px touch target on mobile
-      const btnH = Math.max(48, 52 * scale);
-      return {
-        x: w * 0.03,
-        y: Math.min(p0.y + p0.h + 4 * scale, h - btnH - 4),
-        w: w * 0.94,
-        h: btnH
-      };
-    }
     return {
-      x: w * 0.2,
-      y: p0.y + p0.h + 6 * scale,
-      w: w * 0.6,
-      h: Math.max(36, 46 * scale)
+      x: w * 0.12,
+      y: p0.y + p0.h + 4 * scale,
+      w: w * 0.76,
+      h: 48 * scale
     };
   }
 
-  // Timer bar area
   function timerArea() {
     const ch = cardH();
-    if (isMobile()) {
-      return {
-        x: w * 0.1,
-        y: h - ch - 100 * scale,
-        w: w * 0.8,
-        h: 8 * scale
-      };
-    }
     return {
-      x: w * 0.15,
-      y: h - ch - 150 * scale,
-      w: w * 0.7,
-      h: 10 * scale
+      x: w * 0.12,
+      y: h - ch - 130 * scale,
+      w: w * 0.76,
+      h: 8 * scale
     };
+  }
+
+  function toastArea() {
+    const ib = infoBar();
+    return { x: w * 0.2, y: ib.y + ib.h + 6 * scale, w: w * 0.6, h: 32 * scale };
   }
 
   // ── Card positioning ─────────────────────────────────────
 
-  // Adaptive hand overlap: increase if cards would overflow
-  function adaptiveOverlap(count) {
-    const cw = cardW();
-    const area = p0Area();
-    const available = area.w * 0.95;
-    const minVisible = cw * 0.28; // at least 28% of a card visible for clicking
-    const overlap = 1 - (available - cw) / ((count - 1) * cw);
-    return Math.min(0.82, Math.max(handOverlap, overlap));
-  }
+  const HAND_OVERLAP = 0.62;
 
   function getHandPositions(count) {
     if (count === 0) return [];
     const cw = cardW(), ch = cardH();
     const area = p0Area();
-    const overlap = adaptiveOverlap(count);
-    const visibleW = cw * (1 - overlap);
+    const visibleW = cw * (1 - HAND_OVERLAP);
     const totalW = cw + (count - 1) * visibleW;
     const startX = area.x + (area.w - totalW) / 2;
-
-    const positions = [];
+    const pos = [];
     for (let i = 0; i < count; i++) {
-      positions.push({
-        x: startX + i * visibleW,
-        y: area.y + (isMobile() ? 8 : 20) * scale,
-        w: cw,
-        h: ch
-      });
+      pos.push({ x: startX + i * visibleW, y: area.y + 14 * scale, w: cw, h: ch });
     }
-    return positions;
+    return pos;
   }
 
   function getOpponentHPositions(count) {
     if (count === 0) return [];
-    const cw = cardW() * (isMobile() ? 0.55 : 0.7);
-    const ch = cardH() * (isMobile() ? 0.55 : 0.7);
+    const cw = cardW() * 0.6, ch = cardH() * 0.6;
     const area = p2Area();
-    const overlapRatio = isMobile() ? 0.82 : 0.75;
-    const visibleW = cw * (1 - overlapRatio);
+    const overlap = 0.78;
+    const visibleW = cw * (1 - overlap);
     const totalW = cw + (count - 1) * visibleW;
     const startX = area.x + (area.w - totalW) / 2;
-
-    const positions = [];
+    const pos = [];
     for (let i = 0; i < count; i++) {
-      positions.push({
-        x: startX + i * visibleW,
-        y: area.y + (isMobile() ? 4 : 8) * scale,
-        w: cw,
-        h: ch
-      });
+      pos.push({ x: startX + i * visibleW, y: area.y + 6 * scale, w: cw, h: ch });
     }
-    return positions;
+    return pos;
   }
 
   function getOpponentVPositions(count) {
     if (count === 0) return [];
-    const cw = cardH() * (isMobile() ? 0.5 : 0.7);
-    const ch = cardW() * (isMobile() ? 0.5 : 0.7);
+    const cw = cardH() * 0.55, ch = cardW() * 0.55;
     const area = p1Area();
-    const visibleH = ch * 0.25;
+    const visibleH = ch * 0.22;
     const totalH = ch + (count - 1) * visibleH;
     const startY = area.y + (area.h - totalH) / 2;
-
-    const positions = [];
+    const pos = [];
     for (let i = 0; i < count; i++) {
-      positions.push({
-        x: area.x + 2 * scale,
-        y: startY + i * visibleH,
-        w: cw,
-        h: ch,
-        rotated: true
-      });
+      pos.push({ x: area.x + 2 * scale, y: startY + i * visibleH, w: cw, h: ch, rotated: true });
     }
-    return positions;
+    return pos;
   }
 
   function getPlayedCardPositions(cardIds, playerSeat) {
@@ -225,97 +145,62 @@ const Layout = (() => {
     const area = playArea();
     const count = cardIds.length;
     if (count === 0) return [];
-
-    const spacing = Math.min(cw * 0.5, (area.w - cw) / Math.max(count - 1, 1));
+    const spacing = Math.min(cw * 0.45, (area.w - cw) / Math.max(count - 1, 1));
     const totalW = cw + (count - 1) * spacing;
     let cx = area.x + (area.w - totalW) / 2;
-    let cy = area.y + area.h / 2;
-
+    let cy = area.y + area.h * 0.45;
     if (playerSeat === 1) cy = area.y + area.h * 0.3;
     else if (playerSeat === 2) cy = area.y + area.h * 0.15;
-
-    return cardIds.map((_, i) => ({
-      x: cx + i * spacing,
-      y: cy - ch / 2,
-      w: cw,
-      h: ch
-    }));
+    return cardIds.map((_, i) => ({ x: cx + i * spacing, y: cy - ch / 2, w: cw, h: ch }));
   }
 
   function getBonusCardPositions() {
     const cw = cardW(), ch = cardH();
     const ib = infoBar();
-    // Top-left corner, next to info bar
-    const gap = isMobile() ? cw * 0.4 : cw * 0.6;
+    const gap = cw * 0.5;
     return [0, 1, 2].map(i => ({
-      x: 10 * scale + i * (cw + gap),
+      x: 10 * scale + i * (cw * 0.75 + gap),
       y: ib.y + ib.h + 6 * scale,
-      w: cw * 0.8,
-      h: ch * 0.8
+      w: cw * 0.75,
+      h: ch * 0.75
     }));
   }
 
-  // ── Player action zones (one per player) ─────────────────
+  // ── Action zones ─────────────────────────────────────────
 
-  // Self (bottom) action zone — above own hand
   function selfActionZone() {
     const p0 = p0Area();
-    const cw = cardW(), ch = cardH();
-    return {
-      x: p0.x,
-      y: p0.y - ch * 0.55 - 4 * scale,
-      w: p0.w,
-      h: ch * 0.5 + 2 * scale
-    };
+    const ch = cardH();
+    return { x: p0.x, y: p0.y - ch * 0.5 - 2 * scale, w: p0.w, h: ch * 0.45 };
   }
 
-  // Left opponent action zone — to the right of their cards
   function leftActionZone() {
     const p1 = p1Area();
-    const cw = cardW(), ch = cardH();
-    return {
-      x: p1.x + p1.w + 4 * scale,
-      y: p1.y + p1.h * 0.2,
-      w: w * 0.12,
-      h: ch * 0.5 + 2 * scale
-    };
+    const cw = cardW();
+    return { x: p1.x + p1.w + 2 * scale, y: p1.y + p1.h * 0.25, w: w * 0.1, h: cardH() * 0.45 };
   }
 
-  // Top opponent action zone — below their cards
   function topActionZone() {
     const p2 = p2Area();
-    const cw = cardW(), ch = cardH();
-    return {
-      x: p2.x,
-      y: p2.y + p2.h + 2 * scale,
-      w: p2.w,
-      h: ch * 0.5 + 2 * scale
-    };
+    return { x: p2.x, y: p2.y + p2.h + 2 * scale, w: p2.w, h: cardH() * 0.45 };
   }
 
-  // Get action zone for a display position
   function getActionZone(dispPos) {
     if (dispPos === 0) return selfActionZone();
     if (dispPos === 1) return leftActionZone();
-    if (dispPos === 2) return topActionZone();
-    return selfActionZone();
+    return topActionZone();
   }
 
   // ── Hit testing ──────────────────────────────────────────
 
   function hitTestHand(mx, my, handSize) {
     const positions = getHandPositions(handSize);
-    const overlap = adaptiveOverlap(handSize);
-    const expand = isMobile() ? 12 : 4;
-
+    const expand = 6;
     for (let i = positions.length - 1; i >= 0; i--) {
       const p = positions[i];
-      // Rightmost card: full width clickable. Others: only visible left portion
       const isLast = (i === positions.length - 1);
-      const clickableRight = isLast ? p.x + p.w : p.x + p.w * (1 - overlap);
-      const clickableLeft = p.x;
-      if (mx >= clickableLeft - expand && mx <= clickableRight + expand &&
-          my >= p.y - expand && my <= p.y + p.h + expand) {
+      const clickR = isLast ? p.x + p.w : p.x + p.w * (1 - HAND_OVERLAP);
+      if (mx >= p.x - expand && mx <= clickR + expand && my >= p.y - expand && my <= p.y + p.h + expand) {
         return i;
       }
     }
@@ -324,7 +209,7 @@ const Layout = (() => {
 
   function hitTestButton(mx, my, buttonLayout) {
     if (!buttonLayout) return null;
-    const expand = isMobile() ? 14 : 4;
+    const expand = 8;
     for (const btn of buttonLayout) {
       if (mx >= btn.x - expand && mx <= btn.x + btn.w + expand &&
           my >= btn.y - expand && my <= btn.y + btn.h + expand) {
@@ -334,32 +219,13 @@ const Layout = (() => {
     return null;
   }
 
-  // ── Toast position ───────────────────────────────────────
-
-  function toastArea() {
-    return {
-      x: w * 0.15,
-      y: infoBar().h + 8 * scale,
-      w: w * 0.7,
-      h: 36 * scale
-    };
-  }
-
   return {
-    recalculate,
-    scale: () => scale,
-    cssW: () => w,
-    cssH: () => h,
+    recalculate, scale: () => scale, cssW: () => w, cssH: () => h,
     cardW, cardH, cardR,
-    isMobile, isDesktop, getMode,
     infoBar, p0Area, p1Area, p2Area, playArea, buttonArea, timerArea, toastArea,
-    getHandPositions,
-    getOpponentHPositions,
-    getOpponentVPositions,
-    getPlayedCardPositions,
-    getBonusCardPositions,
+    getHandPositions, getOpponentHPositions, getOpponentVPositions,
+    getPlayedCardPositions, getBonusCardPositions,
     selfActionZone, leftActionZone, topActionZone, getActionZone,
-    hitTestHand,
-    hitTestButton,
+    hitTestHand, hitTestButton,
   };
 })();
