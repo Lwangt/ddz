@@ -55,6 +55,7 @@ class GameManager {
 
     const room = this.rooms.get(code);
     if (!room) {
+      console.log(`[join] FAIL: room ${code} not found. Active rooms: ${[...this.rooms.keys()].join(', ') || '(none)'}`);
       socket.emit('error', { message: '房间不存在' });
       return;
     }
@@ -216,8 +217,25 @@ class GameManager {
 
     console.log(`[dc] ${player.name} forfeited (timeout)`);
 
-    // During game: remove player, game aborts
-    room.leaveRoom(socketId);
+    // Properly remove the disconnected player
+    room.removePlayer(socketId);
+    this.socketToRoom.delete(socketId);
+
+    room.toRoom('player_left', {
+      playerId: player.id,
+      playerName: player.name,
+      seatIndex: player.seatIndex,
+      players: room.players.map(p => p.toPublicJSON()),
+    });
+
+    // If room is empty, delete it
+    if (room.players.length === 0) {
+      this.rooms.delete(roomCode);
+      console.log(`[room] ${roomCode} destroyed (all disconnected)`);
+      return;
+    }
+
+    // During game: not enough players → abort
     if (room.players.length < 2) {
       room.toRoom('game_aborted', {
         reason: `${player.name} 断开连接，游戏结束`,

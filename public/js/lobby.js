@@ -146,14 +146,39 @@
     window.location.href = (baseHref !== '/' ? baseHref : '/') + `game.html?room=${myRoomCode}`;
   }
 
+  // ── Set up one-time response handlers ────────────────────
+
+  let joinConfirmHandler = null;
+  let joinErrorHandler = null;
+
+  function setupJoinHandlers() {
+    // Remove previous handlers if any
+    if (joinConfirmHandler) SocketManager.off('join_confirmed', joinConfirmHandler);
+    if (joinErrorHandler) SocketManager.off('error', joinErrorHandler);
+
+    joinConfirmHandler = (data) => {
+      showRoom(data);
+    };
+    joinErrorHandler = (data) => {
+      showStatus(data.message, false);
+    };
+
+    SocketManager.on('join_confirmed', joinConfirmHandler);
+    SocketManager.on('error', joinErrorHandler);
+  }
+
+  // ── Room creator event handlers (registered once) ─────────
+
+  SocketManager.on('room_created', showRoom);
+
   // Create room
   createBtn.addEventListener('click', () => {
     const name = validateName();
     if (!name) return;
     myName = name;
     SocketManager.connect();
+    setupJoinHandlers();
     SocketManager.emit('create_room', { playerName: name, testMode });
-    SocketManager.on('room_created', showRoom);
     showStatus('正在创建房间...', true);
   });
 
@@ -168,16 +193,8 @@
     }
     myName = name;
     SocketManager.connect();
+    setupJoinHandlers();
     SocketManager.emit('join_room', { roomCode: code, playerName: name });
-
-    SocketManager.on('join_confirmed', (data) => {
-      showRoom(data);
-    });
-
-    SocketManager.on('error', (data) => {
-      showStatus(data.message, false);
-    });
-
     showStatus('正在加入房间...', true);
   });
 
