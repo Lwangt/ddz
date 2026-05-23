@@ -218,9 +218,9 @@ class Room {
   }
 
   processBid(socketId, amount) {
-    if (this.state !== C.PHASE_BIDDING) return;
+    if (this.state !== C.PHASE_BIDDING && this.state !== 'BIDDING_DONE') return;
 
-    const player = this.players.find(p => p.id === socketId);
+    const player = this.getPlayer(socketId);
     if (!player) return;
     if (this.bidResponses[player.seatIndex] !== undefined) return; // already bid
 
@@ -258,6 +258,7 @@ class Room {
   finishBidding() {
     if (this.state !== C.PHASE_BIDDING) return;
     this.clearBidTimer();
+    this.state = 'BIDDING_DONE'; // prevent more bids immediately
 
     // Auto-fill missing responses as pass
     for (const p of this.players) {
@@ -274,7 +275,11 @@ class Room {
       return;
     }
 
-    setTimeout(() => this.determineLandlord(), 500);
+    this.toRoom('bidding_result', {
+      highestBid: this.currentBid,
+      highestBidder: this.highestBidderIndex,
+    });
+    setTimeout(() => this.determineLandlord(), 800);
   }
 
   redeal() {
