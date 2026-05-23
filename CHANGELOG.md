@@ -119,3 +119,7 @@
 ## 2026-05-17 19:50
 - 需求：每次提需求时，将需求和时间记录在 md 文档中
 - 处理：创建 CHANGELOG.md，在 CLAUDE.md 中添加需求记录规则
+
+## 2026-05-23 19:22
+- 需求：每次部署后在浏览器标题栏显示部署时间，精确到分钟，方便确认访问的是哪个版本
+- 处理：deploy.js写入public/version.txt，HTML页面fetch后更新document.title
