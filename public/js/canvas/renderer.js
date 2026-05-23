@@ -83,10 +83,28 @@ const GameRenderer = (() => {
     else area = Layout.p2Area();
 
     if (!area) return;
-    const pulse = 0.03 + 0.025 * Math.sin(Date.now() / 500);
-    ctx.fillStyle = `rgba(255,215,0,${pulse})`;
-    const r = 8 * Layout.scale();
-    rr(area.x, area.y, area.w, area.h, r);
+    const sc = Layout.scale();
+    const pulse = 0.15 + 0.1 * Math.sin(Date.now() / 400);
+    const r = 8 * sc;
+
+    // Glowing border
+    ctx.shadowColor = `rgba(255,215,0,${pulse})`;
+    ctx.shadowBlur = 12 * sc;
+    ctx.strokeStyle = `rgba(255,215,0,${pulse})`;
+    ctx.lineWidth = 2.5 * sc;
+    ctx.beginPath();
+    ctx.moveTo(area.x + r, area.y);
+    ctx.lineTo(area.x + area.w - r, area.y);
+    ctx.arcTo(area.x + area.w, area.y, area.x + area.w, area.y + r, r);
+    ctx.lineTo(area.x + area.w, area.y + area.h - r);
+    ctx.arcTo(area.x + area.w, area.y + area.h, area.x + area.w - r, area.y + area.h, r);
+    ctx.lineTo(area.x + r, area.y + area.h);
+    ctx.arcTo(area.x, area.y + area.h, area.x, area.y + area.h - r, r);
+    ctx.lineTo(area.x, area.y + r);
+    ctx.arcTo(area.x, area.y, area.x + r, area.y, r);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.shadowColor = 'transparent';
   }
 
   function rr(x, y, w, h, r) {
@@ -358,7 +376,6 @@ const GameRenderer = (() => {
     const s = gameState;
     if (!s.playerLastActions || s.phase !== 'PLAYING') return;
     const sc = Layout.scale();
-    const isMob = false; // unified layout, no mobile distinction
     const cw = Layout.cardW(), ch = Layout.cardH();
 
     for (const player of s.players) {
@@ -367,37 +384,49 @@ const GameRenderer = (() => {
 
       const dispPos = player.seatIndex === s.mySeat ? 0 : (player.seatIndex - s.mySeat + 3) % 3;
       const zone = Layout.getActionZone(dispPos);
+      const isMe = player.seatIndex === s.mySeat;
 
       if (lastAct.action === 'pass') {
-        // Show "不出" centered in zone
-        ctx.fillStyle = 'rgba(255,255,255,0.45)';
-        ctx.font = `bold ${isMob ? 13 : 16 * sc}px "Microsoft YaHei", sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = `bold ${15 * sc}px "Microsoft YaHei", sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('不出', zone.x + zone.w / 2, zone.y + zone.h / 2);
         ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic';
       } else if (lastAct.action === 'play' && lastAct.cardIds) {
-        // Show played cards (smaller, face-up) + pattern name
-        const smallW = cw * 0.6;
-        const smallH = ch * 0.6;
+        const smallW = cw * 0.62;
+        const smallH = ch * 0.62;
         const count = lastAct.cardIds.length;
-        const spacing = Math.min(smallW * 0.4, (zone.w - smallW) / Math.max(count - 1, 1));
+        const spacing = Math.min(smallW * 0.42, (zone.w - smallW) / Math.max(count - 1, 1));
         const totalW = smallW + (count - 1) * spacing;
         const startX = zone.x + (zone.w - totalW) / 2;
-        const startY = zone.y + 2 * sc;
+        const startY = zone.y + 6 * sc;
 
-        // Pattern label above the cards
+        // Player name label
+        ctx.fillStyle = isMe ? '#ffd700' : 'rgba(255,255,255,0.7)';
+        ctx.font = `bold ${11 * sc}px "Microsoft YaHei", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        const nameY = startY - 4 * sc;
+        const label = isMe ? '你' : player.name;
+        ctx.fillText(label, zone.x + zone.w / 2, nameY);
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'alphabetic';
+
+        // Pattern type badge
         if (lastAct.pattern) {
           const patName = PATTERN_LABELS[lastAct.pattern.type] || lastAct.pattern.type;
-          ctx.fillStyle = 'rgba(255,215,0,0.8)';
-          ctx.font = `bold ${isMob ? 9 : 10 * sc}px "Microsoft YaHei", sans-serif`;
+          ctx.fillStyle = '#ffd700';
+          ctx.font = `bold ${10 * sc}px "Microsoft YaHei", sans-serif`;
           ctx.textAlign = 'center';
-          ctx.fillText(patName, zone.x + zone.w / 2, startY - 2 * sc);
+          ctx.shadowColor = 'rgba(0,0,0,0.7)';
+          ctx.shadowBlur = 3 * sc;
+          ctx.fillText(patName, zone.x + zone.w / 2, startY + smallH + 14 * sc);
+          ctx.shadowColor = 'transparent';
           ctx.textAlign = 'start';
         }
 
-        // Draw small cards
         for (let i = 0; i < count; i++) {
           CardDrawer.drawCardFace(ctx, lastAct.cardIds[i],
             startX + i * spacing, startY, smallW, smallH, false);
@@ -407,78 +436,77 @@ const GameRenderer = (() => {
   }
 
   function drawPlayArea() {
+    // Center area — turn indicator only (cards drawn in per-player action zones)
     const s = gameState;
+    if (s.phase !== 'PLAYING') return;
     const sc = Layout.scale();
-    const isMob = false; // unified layout, no mobile distinction
+    const pa = Layout.playArea();
 
-    // Show each player's last play or "pass" status
-    // We use lastPlayedCards + passCount to determine what to show
-    if (s.lastPlayedCards && s.lastPlayedCards.length > 0 && s.lastPlayedBy >= 0) {
-      const player = s.players.find(p => p.seatIndex === s.lastPlayedBy);
-      const dispPos = (s.lastPlayedBy - s.mySeat + 3) % 3;
-      const positions = Layout.getPlayedCardPositions(s.lastPlayedCards, dispPos);
+    // Current player name indicator
+    const cp = s.players.find(p => p.seatIndex === s.currentPlayerIndex);
+    if (!cp) return;
 
-      // Player name above cards
-      if (player) {
-        const pos = positions[0];
-        ctx.fillStyle = '#ffd700';
-        ctx.font = `bold ${13 * sc}px "Microsoft YaHei", sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText(player.name + ' 出牌', pos.x + pos.w / 2,
-          pos.y - 4 * sc);
-        ctx.textAlign = 'start';
-      }
+    const isMe = cp.seatIndex === s.mySeat;
+    const prefix = isMe ? '轮到你' : `${cp.name}`;
+    const suffix = isMe ? '出牌' : '正在出牌...';
+    const fullText = `${prefix} ${suffix}`;
 
-      // Pattern label
-      if (s.lastPattern) {
-        const lbl = PATTERN_LABELS[s.lastPattern.type] || s.lastPattern.type;
-        ctx.font = `bold ${isMob ? 9 : 11 * sc}px "Microsoft YaHei", sans-serif`;
-        const tw = ctx.measureText(lbl).width;
-        const pos = positions[Math.floor(positions.length / 2)];
-        const bx = pos.x + pos.w / 2 - tw / 2 - 6 * sc;
-        const by = pos.y + positions[0].h + 2 * sc;
+    // Background badge
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const fontSize = 18 * sc;
+    ctx.font = `bold ${fontSize}px "Microsoft YaHei", sans-serif`;
+    const tw = ctx.measureText(fullText).width;
+    const padX = 24 * sc;
+    const padY = 14 * sc;
+    const bx = pa.x + pa.w / 2 - tw / 2 - padX;
+    const by = pa.y + pa.h * 0.58;
+    const bw = tw + padX * 2;
+    const bh = fontSize + padY * 2;
 
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        const r = 4 * sc;
-        ctx.beginPath();
-        ctx.moveTo(bx + r, by);
-        ctx.lineTo(bx + tw + 12 * sc - r, by);
-        ctx.arcTo(bx + tw + 12 * sc, by, bx + tw + 12 * sc, by + r, r);
-        ctx.lineTo(bx + tw + 12 * sc, by + 16 * sc - r);
-        ctx.arcTo(bx + tw + 12 * sc, by + 16 * sc, bx + tw + 12 * sc - r, by + 16 * sc, r);
-        ctx.lineTo(bx + r, by + 16 * sc);
-        ctx.arcTo(bx, by + 16 * sc, bx, by + 16 * sc - r, r);
-        ctx.lineTo(bx, by + r);
-        ctx.arcTo(bx, by, bx + r, by, r);
-        ctx.closePath();
-        ctx.fill();
+    // Glow
+    ctx.shadowColor = isMe ? 'rgba(255,215,0,0.6)' : 'rgba(255,255,255,0.2)';
+    ctx.shadowBlur = 16 * sc;
 
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'center';
-        ctx.fillText(lbl, bx + tw / 2 + 6 * sc, by + 11 * sc);
-        ctx.textAlign = 'start';
-      }
+    // Background
+    const grad = ctx.createLinearGradient(bx, by, bx, by + bh);
+    grad.addColorStop(0, 'rgba(0,0,0,0.75)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = grad;
+    const r = 10 * sc;
+    ctx.beginPath();
+    ctx.moveTo(bx + r, by);
+    ctx.lineTo(bx + bw - r, by);
+    ctx.arcTo(bx + bw, by, bx + bw, by + r, r);
+    ctx.lineTo(bx + bw, by + bh - r);
+    ctx.arcTo(bx + bw, by + bh, bx + bw - r, by + bh, r);
+    ctx.lineTo(bx + r, by + bh);
+    ctx.arcTo(bx, by + bh, bx, by + bh - r, r);
+    ctx.lineTo(bx, by + r);
+    ctx.arcTo(bx, by, bx + r, by, r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
 
-      // Draw cards
-      for (let i = 0; i < s.lastPlayedCards.length; i++) {
-        CardDrawer.drawCardFace(ctx, s.lastPlayedCards[i],
-          positions[i].x, positions[i].y, positions[i].w, positions[i].h, false);
-      }
-    }
+    // Border
+    ctx.strokeStyle = isMe ? 'rgba(255,215,0,0.5)' : 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1.5 * sc;
+    ctx.stroke();
 
-    // Show pass markers — display which players said "不出"
+    // Text
+    ctx.fillStyle = isMe ? '#ffd700' : '#e0e0e0';
+    ctx.fillText(fullText, bx + bw / 2, by + bh / 2);
+
+    // Pass count badge
     if (s.passCount > 0) {
-      const pa = Layout.playArea();
-      const passPlayer = s.players[s.currentPlayerIndex]; // last player who acted
-      ctx.font = `bold ${isMob ? 12 : 15 * sc}px "Microsoft YaHei", sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(255,255,255,0.4)';
-      ctx.textBaseline = 'middle';
-      const txt = s.passCount >= 2 ? '不出 ×2' : '不出';
-      ctx.fillText(txt, pa.x + pa.w / 4, pa.y + pa.h * 0.7);
-      ctx.textAlign = 'start';
-      ctx.textBaseline = 'alphabetic';
+      ctx.font = `${13 * sc}px "Microsoft YaHei", sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      const passText = s.passCount >= 2 ? `已连续不出 ×${s.passCount}` : '已有人不出';
+      ctx.fillText(passText, pa.x + pa.w / 2, by + bh + 22 * sc);
     }
+
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
   }
 
   // ── Bonus cards ──────────────────────────────────────────
@@ -720,19 +748,23 @@ const GameRenderer = (() => {
     const progress = s.turnTimeLeft / s.turnTimeTotal;
     const sc = Layout.scale();
 
-    // Track
-    const trackR = area.h / 2;
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    // Make bar taller for visibility
+    const trackH = 10 * sc;
+    const trackY = area.y + area.h / 2 - trackH / 2;
+
+    // Background track
+    const trackR = trackH / 2;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
     ctx.beginPath();
-    ctx.moveTo(area.x + trackR, area.y);
-    ctx.lineTo(area.x + area.w - trackR, area.y);
-    ctx.arcTo(area.x + area.w, area.y, area.x + area.w, area.y + trackR, trackR);
-    ctx.lineTo(area.x + area.w, area.y + area.h - trackR);
-    ctx.arcTo(area.x + area.w, area.y + area.h, area.x + area.w - trackR, area.y + area.h, trackR);
-    ctx.lineTo(area.x + trackR, area.y + area.h);
-    ctx.arcTo(area.x, area.y + area.h, area.x, area.y + area.h - trackR, trackR);
-    ctx.lineTo(area.x, area.y + trackR);
-    ctx.arcTo(area.x, area.y, area.x + trackR, area.y, trackR);
+    ctx.moveTo(area.x + trackR, trackY);
+    ctx.lineTo(area.x + area.w - trackR, trackY);
+    ctx.arcTo(area.x + area.w, trackY, area.x + area.w, trackY + trackR, trackR);
+    ctx.lineTo(area.x + area.w, trackY + trackH - trackR);
+    ctx.arcTo(area.x + area.w, trackY + trackH, area.x + area.w - trackR, trackY + trackH, trackR);
+    ctx.lineTo(area.x + trackR, trackY + trackH);
+    ctx.arcTo(area.x, trackY + trackH, area.x, trackY + trackH - trackR, trackR);
+    ctx.lineTo(area.x, trackY + trackR);
+    ctx.arcTo(area.x, trackY, area.x + trackR, trackY, trackR);
     ctx.closePath();
     ctx.fill();
 
@@ -752,35 +784,37 @@ const GameRenderer = (() => {
       fillGrad.addColorStop(1, progress < 0.25 ? '#ff1744' : color);
       ctx.fillStyle = fillGrad;
       ctx.beginPath();
-      ctx.moveTo(area.x + trackR, area.y);
-      ctx.lineTo(area.x + fillW - trackR, area.y);
-      ctx.arcTo(area.x + fillW, area.y, area.x + fillW, area.y + trackR, trackR);
-      ctx.lineTo(area.x + fillW, area.y + area.h - trackR);
-      ctx.arcTo(area.x + fillW, area.y + area.h, area.x + fillW - trackR, area.y + area.h, trackR);
-      ctx.lineTo(area.x + trackR, area.y + area.h);
-      ctx.arcTo(area.x, area.y + area.h, area.x, area.y + area.h - trackR, trackR);
-      ctx.lineTo(area.x, area.y + trackR);
-      ctx.arcTo(area.x, area.y, area.x + trackR, area.y, trackR);
+      ctx.moveTo(area.x + trackR, trackY);
+      ctx.lineTo(area.x + fillW - trackR, trackY);
+      ctx.arcTo(area.x + fillW, trackY, area.x + fillW, trackY + trackR, trackR);
+      ctx.lineTo(area.x + fillW, trackY + trackH - trackR);
+      ctx.arcTo(area.x + fillW, trackY + trackH, area.x + fillW - trackR, trackY + trackH, trackR);
+      ctx.lineTo(area.x + trackR, trackY + trackH);
+      ctx.arcTo(area.x, trackY + trackH, area.x, trackY + trackH - trackR, trackR);
+      ctx.lineTo(area.x, trackY + trackR);
+      ctx.arcTo(area.x, trackY, area.x + trackR, trackY, trackR);
       ctx.closePath();
       ctx.fill();
     }
 
     // Pulse when low
     if (progress < 0.25) {
-      const pulse = 0.25 + 0.25 * Math.sin(Date.now() / 180);
+      const pulse = 0.2 + 0.2 * Math.sin(Date.now() / 150);
       ctx.fillStyle = `rgba(255,23,68,${pulse})`;
       ctx.fill();
     }
 
-    // Countdown text
+    // Countdown text ABOVE the bar
     const secs = Math.ceil(s.turnTimeLeft);
     ctx.fillStyle = '#fff';
-    ctx.font = `bold ${16 * sc}px "Microsoft YaHei", sans-serif`;
+    const fontSize = progress < 0.25 ? 20 * sc : 16 * sc;
+    ctx.font = `bold ${fontSize}px "Microsoft YaHei", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
     ctx.shadowBlur = 4 * sc;
-    ctx.fillText(`${secs}s`, area.x + area.w / 2, area.y - 6 * sc);
+    const countText = progress < 0.25 ? `⏰ ${secs}s` : `${secs}s`;
+    ctx.fillText(countText, area.x + area.w / 2, trackY - 8 * sc);
     ctx.shadowColor = 'transparent';
     ctx.textAlign = 'start';
     ctx.textBaseline = 'alphabetic';
