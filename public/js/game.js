@@ -653,7 +653,7 @@
     canvas.style.background = '#000'; // letterbox color
 
     Layout.recalculate(gw, gh);
-    ctx.setTransform(dpr, 0, 0, dpr, gx, gy);
+    ctx.setTransform(dpr, 0, 0, dpr, gx * dpr, gy * dpr);
   }
 
   // ── Orientation lock ──────────────────────────────────────

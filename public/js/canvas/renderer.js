@@ -46,23 +46,25 @@ const GameRenderer = (() => {
   // ── Background ───────────────────────────────────────────
 
   function drawBackground(W, H) {
-    const grad = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H));
-    grad.addColorStop(0, '#1a7a2e');
-    grad.addColorStop(0.5, '#0f5a1e');
-    grad.addColorStop(1, '#062e10');
+    // Rich dark green felt — radial with subtle off-center glow
+    const grad = ctx.createRadialGradient(W * 0.45, H * 0.4, 0, W / 2, H / 2, Math.max(W, H) * 0.9);
+    grad.addColorStop(0, '#1d4a28');
+    grad.addColorStop(0.4, '#14381e');
+    grad.addColorStop(0.75, '#0c2414');
+    grad.addColorStop(1, '#061a0c');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
 
-    // Table felt texture circles
-    ctx.strokeStyle = 'rgba(255,255,255,0.012)';
-    ctx.lineWidth = 0.5;
-    const step = 36 * Layout.scale();
-    for (let x = step; x < W; x += step) {
-      for (let y = step; y < H; y += step) {
-        ctx.beginPath();
-        ctx.arc(x, y, step * 0.38, 0, Math.PI * 2);
-        ctx.stroke();
-      }
+    // Subtle diagonal shimmer lines
+    const sc = Layout.scale();
+    ctx.strokeStyle = 'rgba(255,255,255,0.008)';
+    ctx.lineWidth = 0.5 * sc;
+    const step = 48 * sc;
+    for (let i = -H; i < W + H; i += step) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i - H, H);
+      ctx.stroke();
     }
   }
 
@@ -81,9 +83,25 @@ const GameRenderer = (() => {
     else area = Layout.p2Area();
 
     if (!area) return;
-    const pulse = 0.04 + 0.03 * Math.sin(Date.now() / 600);
+    const pulse = 0.03 + 0.025 * Math.sin(Date.now() / 500);
     ctx.fillStyle = `rgba(255,215,0,${pulse})`;
-    ctx.fillRect(area.x, area.y, area.w, area.h);
+    const r = 8 * Layout.scale();
+    rr(area.x, area.y, area.w, area.h, r);
+  }
+
+  function rr(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+    ctx.fill();
   }
 
   // ── Info bar ─────────────────────────────────────────────
@@ -92,52 +110,66 @@ const GameRenderer = (() => {
     const s = gameState;
     const ib = Layout.infoBar();
     const sc = Layout.scale();
-    const isMob = false; // unified layout, no mobile distinction
 
-    ctx.fillStyle = 'rgba(0,0,0,0.65)';
-    ctx.fillRect(ib.x, ib.y, ib.w, ib.h);
+    // Glass-morphism panel
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    const r = 6 * sc;
+    ctx.beginPath();
+    ctx.moveTo(ib.x + r, ib.y);
+    ctx.lineTo(ib.x + ib.w - r, ib.y);
+    ctx.arcTo(ib.x + ib.w, ib.y, ib.x + ib.w, ib.y + r, r);
+    ctx.lineTo(ib.x + ib.w, ib.y + ib.h);
+    ctx.lineTo(ib.x, ib.y + ib.h);
+    ctx.lineTo(ib.x, ib.y + r);
+    ctx.arcTo(ib.x, ib.y, ib.x + r, ib.y, r);
+    ctx.closePath();
+    ctx.fill();
+
+    // Subtle top highlight line
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(ib.x + r, ib.y + 1);
+    ctx.lineTo(ib.x + ib.w - r, ib.y + 1);
+    ctx.stroke();
 
     ctx.textBaseline = 'middle';
-    const fontSize = isMob ? 11 * sc : 13 * sc;
-    ctx.font = `bold ${fontSize}px "Microsoft YaHei", sans-serif`;
+    ctx.font = `bold ${12 * sc}px "Microsoft YaHei", sans-serif`;
 
-    let x = 12 * sc;
+    let x = 14 * sc;
 
-    // Room code badge
     if (s.roomCode) {
       const txt = `房间 ${s.roomCode}`;
-      const tw = ctx.measureText(txt).width + 16 * sc;
-      drawBadge(x, ib.y + ib.h / 2 - 8 * sc, tw, 20 * sc, 'rgba(255,255,255,0.15)');
-      ctx.fillStyle = '#fff';
-      ctx.fillText(txt, x + 8 * sc, ib.y + ib.h / 2);
-      x += tw + 12 * sc;
+      const tw = ctx.measureText(txt).width + 14 * sc;
+      drawPill(x, ib.y + ib.h / 2 - 9 * sc, tw, 18 * sc, 'rgba(255,255,255,0.1)');
+      ctx.fillStyle = '#e0e0e0';
+      ctx.fillText(txt, x + 7 * sc, ib.y + ib.h / 2);
+      x += tw + 10 * sc;
     }
 
-    // Phase info
     if (s.phase === 'BIDDING') {
       const bidText = `叫地主  ${s.currentBid || 0}分`;
-      const tw = ctx.measureText(bidText).width + 16 * sc;
-      drawBadge(x, ib.y + ib.h / 2 - 8 * sc, tw, 20 * sc, 'rgba(255,193,7,0.2)');
+      const tw = ctx.measureText(bidText).width + 14 * sc;
+      drawPill(x, ib.y + ib.h / 2 - 9 * sc, tw, 18 * sc, 'rgba(255,193,7,0.18)');
       ctx.fillStyle = '#ffc107';
-      ctx.fillText(bidText, x + 8 * sc, ib.y + ib.h / 2);
-      x += tw + 12 * sc;
+      ctx.fillText(bidText, x + 7 * sc, ib.y + ib.h / 2);
+      x += tw + 10 * sc;
     }
 
     if (s.phase === 'PLAYING' || s.phase === 'FINISHED') {
       const base = Math.max(s.currentBid || 0, 1);
       const mText = `底分 ${base}  倍数 ×${s.multiplier}`;
-      const tw = ctx.measureText(mText).width + 16 * sc;
-      const bg = s.multiplier >= 4 ? 'rgba(255,82,82,0.25)' : 'rgba(255,255,255,0.12)';
-      drawBadge(x, ib.y + ib.h / 2 - 8 * sc, tw, 20 * sc, bg);
-      ctx.fillStyle = s.multiplier >= 4 ? '#ff8a80' : '#fff';
-      ctx.fillText(mText, x + 8 * sc, ib.y + ib.h / 2);
-      x += tw + 12 * sc;
+      const tw = ctx.measureText(mText).width + 14 * sc;
+      const bg = s.multiplier >= 4 ? 'rgba(255,82,82,0.22)' : 'rgba(255,255,255,0.08)';
+      drawPill(x, ib.y + ib.h / 2 - 9 * sc, tw, 18 * sc, bg);
+      ctx.fillStyle = s.multiplier >= 4 ? '#ffa0a0' : '#e0e0e0';
+      ctx.fillText(mText, x + 7 * sc, ib.y + ib.h / 2);
     }
 
     ctx.textBaseline = 'alphabetic';
   }
 
-  function drawBadge(x, y, w, h, color) {
+  function drawPill(x, y, w, h, color) {
     ctx.fillStyle = color;
     const r = h / 2;
     ctx.beginPath();
@@ -196,23 +228,31 @@ const GameRenderer = (() => {
     const s = gameState;
     if (!s.players || s.players.length === 0) return;
     const sc = Layout.scale();
-    const isMob = false; // unified layout, no mobile distinction
     const ib = Layout.infoBar();
 
-    // Position: right side of info bar
-    const fontSize = isMob ? 10 : 13;
-    ctx.font = `bold ${fontSize * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.font = `bold ${12 * sc}px "Microsoft YaHei", sans-serif`;
     ctx.textBaseline = 'middle';
 
-    let x = Layout.cssW() - 10 * sc;
+    let x = Layout.cssW() - 8 * sc;
     for (let i = s.players.length - 1; i >= 0; i--) {
       const p = s.players[i];
-      const label = p.name.slice(0, 3) + ': ' + (p.score >= 0 ? '+' : '') + p.score;
-      const tw = ctx.measureText(label).width;
-      x -= tw + 20 * sc;
-      ctx.fillStyle = p.seatIndex === s.mySeat ? '#ffd700' : 'rgba(255,255,255,0.7)';
-      ctx.fillText(label, x, ib.y + ib.h / 2);
-      x -= 4 * sc;
+      const isMe = p.seatIndex === s.mySeat;
+      const scoreStr = `${p.score >= 0 ? '+' : ''}${p.score}`;
+      const name = p.name.slice(0, 4);
+
+      // Draw score first (right-aligned)
+      ctx.font = `bold ${12 * sc}px "Microsoft YaHei", sans-serif`;
+      const scoreW = ctx.measureText(scoreStr).width;
+      ctx.fillStyle = p.score > 0 ? '#ffd700' : p.score < 0 ? '#ff8a80' : 'rgba(255,255,255,0.5)';
+      ctx.fillText(scoreStr, x - scoreW, ib.y + ib.h / 2);
+
+      // Draw name
+      ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
+      const nameW = ctx.measureText(name).width;
+      ctx.fillStyle = isMe ? '#ffd700' : 'rgba(255,255,255,0.6)';
+      ctx.fillText(name, x - scoreW - nameW - 10 * sc, ib.y + ib.h / 2);
+
+      x -= (scoreW + nameW + 18 * sc);
     }
     ctx.textBaseline = 'alphabetic';
   }
@@ -236,31 +276,30 @@ const GameRenderer = (() => {
     const positions = Layout.getOpponentHPositions(player.cardCount);
     const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
 
-    // Name with status
+    // Name with crown
     let nameStr = player.name;
     if (player.isLandlord) nameStr = '👑 ' + nameStr;
-    if (!player.isConnected) nameStr += ' 🔴';
+    if (!player.isConnected) nameStr += ' ⊘';
 
-    ctx.font = `bold ${isMob ? 11 : 14 * sc}px "Microsoft YaHei", sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
+    const nameY = area.y - 4 * sc;
 
     if (isActive) {
-      ctx.shadowColor = 'rgba(255,215,0,0.8)';
-      ctx.shadowBlur = 8 * sc;
-      ctx.fillStyle = '#ffd700';
-    } else {
-      ctx.shadowColor = 'transparent';
-      ctx.fillStyle = '#fff';
+      ctx.shadowColor = 'rgba(255,215,0,0.7)';
+      ctx.shadowBlur = 10 * sc;
     }
-    ctx.fillText(nameStr, area.x + area.w / 2, area.y - 2 * sc);
+    ctx.font = `bold ${14 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = isActive ? '#ffd700' : '#e8e8e8';
+    ctx.fillText(nameStr, area.x + area.w / 2, nameY);
     ctx.shadowColor = 'transparent';
 
-    // Card count badge
-    ctx.font = `${isMob ? 10 : 12 * sc}px "Microsoft YaHei", sans-serif`;
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.fillText(`${player.cardCount}张`, area.x + area.w / 2,
-      area.y + area.h - 4 * sc);
+    // Card count
+    ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${player.cardCount}张`, area.x + area.w / 2, nameY + 4 * sc);
+    ctx.textBaseline = 'alphabetic';
 
     ctx.textAlign = 'start';
     ctx.textBaseline = 'alphabetic';
@@ -281,27 +320,24 @@ const GameRenderer = (() => {
     // Name below cards
     let nameStr = player.name;
     if (player.isLandlord) nameStr = '👑 ' + nameStr;
-    if (!player.isConnected) nameStr += ' 🔴';
+    if (!player.isConnected) nameStr += ' ⊘';
 
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.font = `bold ${isMob ? 11 : 14 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.font = `bold ${14 * sc}px "Microsoft YaHei", sans-serif`;
 
     if (isActive) {
-      ctx.shadowColor = 'rgba(255,215,0,0.8)';
-      ctx.shadowBlur = 8 * sc;
-      ctx.fillStyle = '#ffd700';
-    } else {
-      ctx.shadowColor = 'transparent';
-      ctx.fillStyle = '#fff';
+      ctx.shadowColor = 'rgba(255,215,0,0.7)';
+      ctx.shadowBlur = 10 * sc;
     }
 
     const nameX = area.x + area.w / 2;
-    const nameY = area.y + area.h + 8 * sc;
+    const nameY = area.y + area.h + 10 * sc;
+    ctx.fillStyle = isActive ? '#ffd700' : '#e8e8e8';
+    ctx.textBaseline = 'top';
     ctx.fillText(nameStr, nameX, nameY);
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = `${isMob ? 10 : 12 * sc}px "Microsoft YaHei", sans-serif`;
-    ctx.fillText(`${player.cardCount}张`, nameX, nameY + 16 * sc);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.fillText(`${player.cardCount}张`, nameX, nameY + 18 * sc);
     ctx.shadowColor = 'transparent';
     ctx.textAlign = 'start';
     ctx.textBaseline = 'alphabetic';
@@ -516,38 +552,42 @@ const GameRenderer = (() => {
     const s = gameState;
     const area = Layout.buttonArea();
     const sc = Layout.scale();
-    const isMob = false; // unified layout, no mobile distinction
 
     const btns = getButtonLayout();
     s._buttonLayout = btns;
 
     for (const btn of btns) {
-      const r = btn.h / 2; // pill shape
+      const r = btn.h / 2;
+
+      ctx.save();
 
       // Shadow
       if (!btn.disabled) {
-        ctx.shadowColor = 'rgba(0,0,0,0.3)';
-        ctx.shadowBlur = 4 * sc;
-        ctx.shadowOffsetY = 2 * sc;
+        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.shadowBlur = 6 * sc;
+        ctx.shadowOffsetY = 3 * sc;
       }
 
-      // Background gradient
+      // Background
       const grad = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.h);
       if (btn.disabled) {
-        grad.addColorStop(0, 'rgba(255,255,255,0.06)');
-        grad.addColorStop(1, 'rgba(255,255,255,0.04)');
+        grad.addColorStop(0, 'rgba(255,255,255,0.05)');
+        grad.addColorStop(1, 'rgba(255,255,255,0.03)');
       } else if (btn.type === 'primary') {
-        grad.addColorStop(0, '#FF9800');
+        grad.addColorStop(0, '#FFB74D');
+        grad.addColorStop(0.5, '#FF9800');
         grad.addColorStop(1, '#F57C00');
       } else if (btn.type === 'danger') {
         grad.addColorStop(0, '#EF5350');
-        grad.addColorStop(1, '#D32F2F');
+        grad.addColorStop(0.5, '#E53935');
+        grad.addColorStop(1, '#C62828');
       } else if (btn.type === 'bid') {
-        grad.addColorStop(0, '#42A5F5');
+        grad.addColorStop(0, '#64B5F6');
+        grad.addColorStop(0.5, '#42A5F5');
         grad.addColorStop(1, '#1E88E5');
       } else {
-        grad.addColorStop(0, 'rgba(255,255,255,0.18)');
-        grad.addColorStop(1, 'rgba(255,255,255,0.10)');
+        grad.addColorStop(0, 'rgba(255,255,255,0.16)');
+        grad.addColorStop(1, 'rgba(255,255,255,0.08)');
       }
       ctx.fillStyle = grad;
 
@@ -566,29 +606,56 @@ const GameRenderer = (() => {
 
       ctx.shadowColor = 'transparent';
 
-      // Top highlight
+      // Top glossy highlight
       if (!btn.disabled) {
-        const hl = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.h * 0.45);
-        hl.addColorStop(0, 'rgba(255,255,255,0.3)');
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(btn.x + r, btn.y);
+        ctx.lineTo(btn.x + btn.w - r, btn.y);
+        ctx.arcTo(btn.x + btn.w, btn.y, btn.x + btn.w, btn.y + r, r);
+        ctx.lineTo(btn.x + btn.w, btn.y + r);
+        ctx.lineTo(btn.x, btn.y + r);
+        ctx.lineTo(btn.x, btn.y + r);
+        ctx.arcTo(btn.x, btn.y, btn.x + r, btn.y, r);
+        ctx.closePath();
+        ctx.clip();
+        const hl = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + r);
+        hl.addColorStop(0, 'rgba(255,255,255,0.35)');
         hl.addColorStop(1, 'rgba(255,255,255,0)');
         ctx.fillStyle = hl;
-        ctx.fill();
+        ctx.fillRect(btn.x, btn.y, btn.w, r);
+        ctx.restore();
       }
 
       // Border
-      ctx.strokeStyle = btn.disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.25)';
-      ctx.lineWidth = 1.2 * sc;
+      ctx.strokeStyle = btn.disabled ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1 * sc;
+      ctx.beginPath();
+      ctx.moveTo(btn.x + r, btn.y);
+      ctx.lineTo(btn.x + btn.w - r, btn.y);
+      ctx.arcTo(btn.x + btn.w, btn.y, btn.x + btn.w, btn.y + r, r);
+      ctx.lineTo(btn.x + btn.w, btn.y + btn.h - r);
+      ctx.arcTo(btn.x + btn.w, btn.y + btn.h, btn.x + btn.w - r, btn.y + btn.h, r);
+      ctx.lineTo(btn.x + r, btn.y + btn.h);
+      ctx.arcTo(btn.x, btn.y + btn.h, btn.x, btn.y + btn.h - r, r);
+      ctx.lineTo(btn.x, btn.y + r);
+      ctx.arcTo(btn.x, btn.y, btn.x + r, btn.y, r);
+      ctx.closePath();
       ctx.stroke();
 
       // Text
-      ctx.fillStyle = btn.disabled ? 'rgba(255,255,255,0.25)'
-        : ((btn.type === 'primary' || btn.type === 'danger' || btn.type === 'bid') ? '#fff' : '#fff');
-      ctx.font = `bold ${isMob ? 13 : 16 * sc}px "Microsoft YaHei", sans-serif`;
+      ctx.fillStyle = btn.disabled ? 'rgba(255,255,255,0.2)' : '#fff';
+      ctx.font = `bold ${15 * sc}px "Microsoft YaHei", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      ctx.shadowColor = btn.disabled ? 'transparent' : 'rgba(0,0,0,0.3)';
+      ctx.shadowBlur = 2 * sc;
       ctx.fillText(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
+      ctx.shadowColor = 'transparent';
       ctx.textAlign = 'start';
       ctx.textBaseline = 'alphabetic';
+
+      ctx.restore();
     }
   }
 
@@ -652,40 +719,69 @@ const GameRenderer = (() => {
     const area = Layout.timerArea();
     const progress = s.turnTimeLeft / s.turnTimeTotal;
     const sc = Layout.scale();
-    const isMob = false; // unified layout, no mobile distinction
 
-    // Background track
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(area.x, area.y, area.w, area.h);
+    // Track
+    const trackR = area.h / 2;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath();
+    ctx.moveTo(area.x + trackR, area.y);
+    ctx.lineTo(area.x + area.w - trackR, area.y);
+    ctx.arcTo(area.x + area.w, area.y, area.x + area.w, area.y + trackR, trackR);
+    ctx.lineTo(area.x + area.w, area.y + area.h - trackR);
+    ctx.arcTo(area.x + area.w, area.y + area.h, area.x + area.w - trackR, area.y + area.h, trackR);
+    ctx.lineTo(area.x + trackR, area.y + area.h);
+    ctx.arcTo(area.x, area.y + area.h, area.x, area.y + area.h - trackR, trackR);
+    ctx.lineTo(area.x, area.y + trackR);
+    ctx.arcTo(area.x, area.y, area.x + trackR, area.y, trackR);
+    ctx.closePath();
+    ctx.fill();
 
-    // Color gradient based on remaining time
+    if (progress <= 0) return;
+
+    // Color
     let color;
-    if (progress > 0.6) color = '#4caf50';
-    else if (progress > 0.25) color = '#ffc107';
-    else color = '#ff5252';
+    if (progress > 0.6) color = '#66BB6A';
+    else if (progress > 0.25) color = '#FFA726';
+    else color = '#EF5350';
 
-    // Progress fill
+    // Fill
     const fillW = area.w * progress;
-    const grad = ctx.createLinearGradient(area.x, 0, area.x + fillW, 0);
-    grad.addColorStop(0, color);
-    grad.addColorStop(1, progress < 0.25 ? '#ff1744' : color);
-    ctx.fillStyle = grad;
-    ctx.fillRect(area.x, area.y, fillW, area.h);
-
-    // Pulsing effect when low
-    if (progress < 0.25) {
-      const pulse = 0.3 + 0.3 * Math.sin(Date.now() / 200);
-      ctx.fillStyle = `rgba(255,23,68,${pulse})`;
-      ctx.fillRect(area.x, area.y, fillW, area.h);
+    if (fillW > trackR * 2) {
+      const fillGrad = ctx.createLinearGradient(area.x, 0, area.x + fillW, 0);
+      fillGrad.addColorStop(0, color);
+      fillGrad.addColorStop(1, progress < 0.25 ? '#ff1744' : color);
+      ctx.fillStyle = fillGrad;
+      ctx.beginPath();
+      ctx.moveTo(area.x + trackR, area.y);
+      ctx.lineTo(area.x + fillW - trackR, area.y);
+      ctx.arcTo(area.x + fillW, area.y, area.x + fillW, area.y + trackR, trackR);
+      ctx.lineTo(area.x + fillW, area.y + area.h - trackR);
+      ctx.arcTo(area.x + fillW, area.y + area.h, area.x + fillW - trackR, area.y + area.h, trackR);
+      ctx.lineTo(area.x + trackR, area.y + area.h);
+      ctx.arcTo(area.x, area.y + area.h, area.x, area.y + area.h - trackR, trackR);
+      ctx.lineTo(area.x, area.y + trackR);
+      ctx.arcTo(area.x, area.y, area.x + trackR, area.y, trackR);
+      ctx.closePath();
+      ctx.fill();
     }
 
-    // Timer text
+    // Pulse when low
+    if (progress < 0.25) {
+      const pulse = 0.25 + 0.25 * Math.sin(Date.now() / 180);
+      ctx.fillStyle = `rgba(255,23,68,${pulse})`;
+      ctx.fill();
+    }
+
+    // Countdown text
     const secs = Math.ceil(s.turnTimeLeft);
     ctx.fillStyle = '#fff';
-    ctx.font = `bold ${isMob ? 14 : 18 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.font = `bold ${16 * sc}px "Microsoft YaHei", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.fillText(`${secs}s`, area.x + area.w / 2, area.y - 4 * sc);
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 4 * sc;
+    ctx.fillText(`${secs}s`, area.x + area.w / 2, area.y - 6 * sc);
+    ctx.shadowColor = 'transparent';
     ctx.textAlign = 'start';
     ctx.textBaseline = 'alphabetic';
   }
@@ -716,10 +812,12 @@ const GameRenderer = (() => {
     alpha = Math.max(0, Math.min(1, alpha));
 
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = 'rgba(0,0,0,0.75)';
-    const tw = Math.min(area.w, ctx.measureText(s._toast.text).width + 40 * sc);
+    const tw = Math.min(area.w, ctx.measureText(s._toast.text).width + 36 * sc);
     const bx = area.x + (area.w - tw) / 2;
     const r = area.h / 2;
+
+    // Glass background
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
     ctx.beginPath();
     ctx.moveTo(bx + r, area.y);
     ctx.lineTo(bx + tw - r, area.y);
@@ -732,12 +830,18 @@ const GameRenderer = (() => {
     ctx.arcTo(bx, area.y, bx + r, area.y, r);
     ctx.closePath();
     ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
     ctx.fillStyle = '#fff';
-    ctx.font = `bold ${isMob ? 12 : 14 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.font = `bold ${13 * sc}px "Microsoft YaHei", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = 2 * sc;
     ctx.fillText(s._toast.text, bx + tw / 2, area.y + area.h / 2);
+    ctx.shadowColor = 'transparent';
     ctx.textAlign = 'start';
     ctx.textBaseline = 'alphabetic';
     ctx.globalAlpha = 1;

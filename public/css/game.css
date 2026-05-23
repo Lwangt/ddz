@@ -22,57 +22,68 @@
 }
 
 .overlay-panel {
-  background: rgba(20, 60, 30, 0.95);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 32px;
+  background: linear-gradient(160deg, rgba(15,35,20,0.96) 0%, rgba(8,22,12,0.96) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 20px;
+  padding: 36px 40px;
   text-align: center;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.1);
   min-width: 320px;
   max-width: 90vw;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
 }
 
 .overlay-title {
   font-size: 28px;
   font-weight: 900;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  letter-spacing: 2px;
 }
 
-.overlay-title.win { color: #ffc107; }
-.overlay-title.lose { color: #ff5252; }
+.overlay-title.win { color: #ffc107; text-shadow: 0 0 20px rgba(255,193,7,0.4); }
+.overlay-title.lose { color: #ff5252; text-shadow: 0 0 20px rgba(255,82,82,0.4); }
 
-.overlay-scores { margin: 16px 0; }
+.overlay-scores { margin: 20px 0; }
 
 .score-row {
   display: flex;
   justify-content: space-between;
-  padding: 8px 16px;
+  padding: 10px 20px;
   font-size: 15px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.8);
 }
 
-.score-row .change-positive { color: #4caf50; }
-.score-row .change-negative { color: #ff5252; }
+.score-row .change-positive { color: #66BB6A; font-weight: 700; }
+.score-row .change-negative { color: #EF5350; font-weight: 700; }
 
 .overlay-btn {
-  margin-top: 20px;
-  padding: 12px 40px;
-  border-radius: 10px;
+  margin-top: 24px;
+  padding: 14px 48px;
+  border-radius: 12px;
   font-size: 16px;
   font-weight: 700;
-  background: #ffc107;
-  color: #1a1a1a;
+  background: linear-gradient(180deg, #FFB74D 0%, #F57C00 100%);
+  color: #fff;
   transition: all 0.2s;
   min-height: 48px;
+  border: none;
+  box-shadow: 0 4px 16px rgba(255,152,0,0.3);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-.overlay-btn:hover { background: #ffd54f; }
+.overlay-btn:hover {
+  background: linear-gradient(180deg, #FFCC80 0%, #FF9800 100%);
+  box-shadow: 0 6px 24px rgba(255,152,0,0.45);
+  transform: translateY(-1px);
+}
 
 .overlay-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Waiting overlay */

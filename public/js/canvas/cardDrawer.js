@@ -164,62 +164,81 @@ const CardDrawer = (() => {
     ctx.translate(x, y);
 
     // Shadow
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-    ctx.shadowBlur = 4 * s;
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = 5 * s;
     ctx.shadowOffsetX = 1 * s;
     ctx.shadowOffsetY = 2 * s;
-    rr(ctx, 0, 0, w, h, 6 * s);
-    ctx.fillStyle = '#1a237e';
+
+    // Main fill — deep navy
+    rr(ctx, 0, 0, w, h, 7 * s);
+    const bodyGrad = ctx.createLinearGradient(0, 0, w, h);
+    bodyGrad.addColorStop(0, '#283593');
+    bodyGrad.addColorStop(0.5, '#1a237e');
+    bodyGrad.addColorStop(1, '#0d1542');
+    ctx.fillStyle = bodyGrad;
     ctx.fill();
     ctx.shadowColor = 'transparent';
 
-    // Outer border
-    rr(ctx, 0, 0, w, h, 6 * s);
-    ctx.strokeStyle = '#0d1555';
+    // Gold outer border
+    rr(ctx, 0, 0, w, h, 7 * s);
+    ctx.strokeStyle = 'rgba(255,215,0,0.3)';
     ctx.lineWidth = 2 * s;
     ctx.stroke();
 
     // Inner white border
-    rr(ctx, 5 * s, 5 * s, w - 10 * s, h - 10 * s, 3 * s);
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-    ctx.lineWidth = 1.2 * s;
+    rr(ctx, 4 * s, 4 * s, w - 8 * s, h - 8 * s, 4 * s);
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1 * s;
     ctx.stroke();
 
-    // Dashed inner border
-    rr(ctx, 10 * s, 10 * s, w - 20 * s, h - 20 * s, 2 * s);
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    // Inner decorative frame
+    rr(ctx, 9 * s, 9 * s, w - 18 * s, h - 18 * s, 3 * s);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
     ctx.lineWidth = 0.8 * s;
-    ctx.setLineDash([3 * s, 3 * s]);
+    ctx.setLineDash([2.5 * s, 2.5 * s]);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Center diamond pattern
+    // Center patterns
     const cx = w / 2, cy = h / 2;
-    const d = Math.min(w, h) * 0.22;
+    const d = Math.min(w, h) * 0.2;
+
+    // Diamond
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(Math.PI / 4);
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    ctx.fillRect(-d / 2, -d / 2, d, d);
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-    ctx.lineWidth = 1 * s;
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1.2 * s;
     ctx.strokeRect(-d / 2, -d / 2, d, d);
+    // Inner smaller diamond
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.strokeRect(-d * 0.5 / 2, -d * 0.5 / 2, d * 0.5, d * 0.5);
     ctx.restore();
 
-    // Inner circle
+    // Circular ornament
     ctx.beginPath();
-    ctx.arc(cx, cy, d * 0.38, 0, Math.PI * 2);
+    ctx.arc(cx, cy, d * 0.35, 0, Math.PI * 2);
     ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1 * s;
     ctx.stroke();
 
-    // Tiny center spade
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.font = `${14 * s}px "Microsoft YaHei", sans-serif`;
+    // Center spade
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.font = `${13 * s}px "Microsoft YaHei", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('♠', cx, cy);
+    ctx.fillText('♠', cx, cy - 1 * s);
     ctx.textAlign = 'start';
     ctx.textBaseline = 'alphabetic';
+
+    // Corner ornaments
+    const orn = 4 * s;
+    ctx.fillStyle = 'rgba(255,215,0,0.15)';
+    ctx.font = `${10 * s}px "Microsoft YaHei", sans-serif`;
+    ctx.fillText('◆', 11 * s, 18 * s);
+    ctx.fillText('◆', w - 18 * s, 18 * s);
+    ctx.fillText('◆', 11 * s, h - 8 * s);
+    ctx.fillText('◆', w - 18 * s, h - 8 * s);
 
     ctx.restore();
   }

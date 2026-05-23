@@ -19,15 +19,10 @@ const InputHandler = (() => {
     const rect = canvas.getBoundingClientRect();
     const cssX = clientX - rect.left;
     const cssY = clientY - rect.top;
-    // Convert from CSS coords to game coords (account for letterbox)
-    const ga = window.gameArea || { x: 0, y: 0, w: canvas.clientWidth, h: canvas.clientHeight };
-    const scaleX = ga.w / canvas.clientWidth;
-    const scaleY = ga.h / canvas.clientHeight;
-    const offX = ga.x;
-    const offY = ga.y;
+    const ga = window.gameArea || { x: 0, y: 0 };
     return {
-      x: (cssX - offX) / scaleX,
-      y: (cssY - offY) / scaleY
+      x: cssX - ga.x,
+      y: cssY - ga.y
     };
   }
 
