@@ -22,16 +22,16 @@
 }
 
 .overlay-panel {
-  background: linear-gradient(160deg, rgba(15,35,20,0.96) 0%, rgba(8,22,12,0.96) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: linear-gradient(170deg, rgba(10,20,12,0.97) 0%, rgba(5,12,8,0.97) 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border-radius: 20px;
   padding: 36px 40px;
   text-align: center;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(200,160,60,0.12);
   min-width: 320px;
   max-width: 90vw;
-  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(200,160,60,0.04) inset;
 }
 
 .overlay-title {
@@ -41,8 +41,8 @@
   letter-spacing: 2px;
 }
 
-.overlay-title.win { color: #ffc107; text-shadow: 0 0 20px rgba(255,193,7,0.4); }
-.overlay-title.lose { color: #ff5252; text-shadow: 0 0 20px rgba(255,82,82,0.4); }
+.overlay-title.win { color: #e6c860; text-shadow: 0 0 24px rgba(200,160,60,0.5); }
+.overlay-title.lose { color: #ff5252; text-shadow: 0 0 24px rgba(255,82,82,0.5); }
 
 .overlay-scores { margin: 20px 0; }
 
@@ -51,8 +51,8 @@
   justify-content: space-between;
   padding: 10px 20px;
   font-size: 15px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  color: rgba(255,255,255,0.8);
+  border-bottom: 1px solid rgba(200,160,60,0.06);
+  color: rgba(255,255,255,0.75);
 }
 
 .score-row .change-positive { color: #66BB6A; font-weight: 700; }
@@ -64,18 +64,17 @@
   border-radius: 12px;
   font-size: 16px;
   font-weight: 700;
-  background: linear-gradient(180deg, #FFB74D 0%, #F57C00 100%);
-  color: #fff;
+  background: linear-gradient(180deg, #e6c860 0%, #c49b2c 100%);
+  color: #1a1200;
   transition: all 0.2s;
   min-height: 48px;
   border: none;
-  box-shadow: 0 4px 16px rgba(255,152,0,0.3);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 20px rgba(200,160,60,0.35);
 }
 
 .overlay-btn:hover {
-  background: linear-gradient(180deg, #FFCC80 0%, #FF9800 100%);
-  box-shadow: 0 6px 24px rgba(255,152,0,0.45);
+  background: linear-gradient(180deg, #f0d878 0%, #d4a830 100%);
+  box-shadow: 0 6px 28px rgba(200,160,60,0.5);
   transform: translateY(-1px);
 }
 

@@ -1,4 +1,4 @@
-// Enhanced master renderer with player highlights, improved timer, and visual polish
+// Premium casino-style renderer — dark wood table, golden accents, player avatars
 const GameRenderer = (() => {
   let ctx = null;
   let gameState = null;
@@ -18,15 +18,12 @@ const GameRenderer = (() => {
 
   function draw() {
     if (!ctx || !gameState) return;
-
-    const W = Layout.cssW();
-    const H = Layout.cssH();
-
+    const W = Layout.cssW(), H = Layout.cssH();
     ctx.save();
-    // Fill game area background (letterbox drawn before us)
-    ctx.fillStyle = '#0a4a1c';
+    ctx.fillStyle = '#0d1b0e';
     ctx.fillRect(0, 0, W, H);
     drawBackground(W, H);
+    drawTableOval(W, H);
     drawGhostTurnIndicator();
     drawInfoBar();
     drawScoreBoard();
@@ -43,32 +40,90 @@ const GameRenderer = (() => {
     ctx.restore();
   }
 
-  // ── Background ───────────────────────────────────────────
+  // ── Background: dark radial with subtle texture ──────────
 
   function drawBackground(W, H) {
-    // Rich dark green felt — radial with subtle off-center glow
-    const grad = ctx.createRadialGradient(W * 0.45, H * 0.4, 0, W / 2, H / 2, Math.max(W, H) * 0.9);
-    grad.addColorStop(0, '#1d4a28');
-    grad.addColorStop(0.4, '#14381e');
-    grad.addColorStop(0.75, '#0c2414');
-    grad.addColorStop(1, '#061a0c');
+    const grad = ctx.createRadialGradient(W * 0.45, H * 0.38, 0, W / 2, H / 2, Math.max(W, H) * 0.85);
+    grad.addColorStop(0, '#1a2f1a');
+    grad.addColorStop(0.35, '#132213');
+    grad.addColorStop(0.7, '#0b180c');
+    grad.addColorStop(1, '#050c06');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
 
-    // Subtle diagonal shimmer lines
+    // Subtle noise dots
     const sc = Layout.scale();
-    ctx.strokeStyle = 'rgba(255,255,255,0.008)';
-    ctx.lineWidth = 0.5 * sc;
-    const step = 48 * sc;
-    for (let i = -H; i < W + H; i += step) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i - H, H);
-      ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.006)';
+    const step = 16 * sc;
+    for (let x = step; x < W; x += step) {
+      for (let y = step; y < H; y += step) {
+        if (Math.random() < 0.3) {
+          ctx.fillRect(x, y, 1 * sc, 1 * sc);
+        }
+      }
     }
   }
 
-  // ── Ghost turn indicator (pulsing background for current player area) ──
+  // ── Table oval: dark green felt play surface ─────────────
+
+  function drawTableOval(W, H) {
+    const sc = Layout.scale();
+    const marginX = W * 0.04;
+    const marginY = H * 0.06;
+    const ox = marginX, oy = marginY;
+    const ow = W - marginX * 2, oh = H - marginY * 2;
+    const rx = ow / 2, ry = oh / 2;
+
+    // Outer golden glow ring
+    ctx.shadowColor = 'rgba(200,160,60,0.25)';
+    ctx.shadowBlur = 20 * sc;
+    ctx.strokeStyle = 'rgba(180,140,50,0.5)';
+    ctx.lineWidth = 4 * sc;
+    ctx.beginPath();
+    ctx.ellipse(W / 2, H / 2, rx + 3 * sc, ry + 3 * sc, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.shadowColor = 'transparent';
+
+    // Inner green felt oval
+    const feltGrad = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(rx, ry));
+    feltGrad.addColorStop(0, '#1e5a2e');
+    feltGrad.addColorStop(0.6, '#164522');
+    feltGrad.addColorStop(1, '#0e3016');
+    ctx.fillStyle = feltGrad;
+    ctx.beginPath();
+    ctx.ellipse(W / 2, H / 2, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Inner gold trim
+    ctx.strokeStyle = 'rgba(200,160,60,0.35)';
+    ctx.lineWidth = 2 * sc;
+    ctx.beginPath();
+    ctx.ellipse(W / 2, H / 2, rx - 6 * sc, ry - 6 * sc, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Corner ornaments — small golden diamonds at 4 corners of the screen
+    drawCornerOrnament(ox + 12 * sc, oy + 12 * sc, sc);           // top-left
+    drawCornerOrnament(W - ox - 12 * sc, oy + 12 * sc, sc);       // top-right
+    drawCornerOrnament(ox + 12 * sc, H - oy - 12 * sc, sc);       // bottom-left
+    drawCornerOrnament(W - ox - 12 * sc, H - oy - 12 * sc, sc);   // bottom-right
+  }
+
+  function drawCornerOrnament(cx, cy, sc) {
+    const s = 6 * sc;
+    ctx.fillStyle = 'rgba(200,160,60,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - s);
+    ctx.lineTo(cx + s, cy);
+    ctx.lineTo(cx, cy + s);
+    ctx.lineTo(cx - s, cy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,215,0,0.3)';
+    ctx.lineWidth = 1 * sc;
+    ctx.stroke();
+  }
+
+  // ── Ghost turn indicator ─────────────────────────────────
 
   function drawGhostTurnIndicator() {
     const s = gameState;
@@ -81,33 +136,22 @@ const GameRenderer = (() => {
     if (dispPos === 0) area = Layout.p0Area();
     else if (dispPos === 1) area = Layout.p1Area();
     else area = Layout.p2Area();
-
     if (!area) return;
+
     const sc = Layout.scale();
-    const pulse = 0.15 + 0.1 * Math.sin(Date.now() / 400);
+    const pulse = 0.18 + 0.12 * Math.sin(Date.now() / 380);
     const r = 8 * sc;
 
-    // Glowing border
     ctx.shadowColor = `rgba(255,215,0,${pulse})`;
-    ctx.shadowBlur = 12 * sc;
-    ctx.strokeStyle = `rgba(255,215,0,${pulse})`;
-    ctx.lineWidth = 2.5 * sc;
-    ctx.beginPath();
-    ctx.moveTo(area.x + r, area.y);
-    ctx.lineTo(area.x + area.w - r, area.y);
-    ctx.arcTo(area.x + area.w, area.y, area.x + area.w, area.y + r, r);
-    ctx.lineTo(area.x + area.w, area.y + area.h - r);
-    ctx.arcTo(area.x + area.w, area.y + area.h, area.x + area.w - r, area.y + area.h, r);
-    ctx.lineTo(area.x + r, area.y + area.h);
-    ctx.arcTo(area.x, area.y + area.h, area.x, area.y + area.h - r, r);
-    ctx.lineTo(area.x, area.y + r);
-    ctx.arcTo(area.x, area.y, area.x + r, area.y, r);
-    ctx.closePath();
+    ctx.shadowBlur = 16 * sc;
+    ctx.strokeStyle = `rgba(255,200,50,${pulse})`;
+    ctx.lineWidth = 3 * sc;
+    roundRectPath(area.x, area.y, area.w, area.h, r);
     ctx.stroke();
     ctx.shadowColor = 'transparent';
   }
 
-  function rr(x, y, w, h, r) {
+  function roundRectPath(x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.lineTo(x + w - r, y);
@@ -119,36 +163,34 @@ const GameRenderer = (() => {
     ctx.lineTo(x, y + r);
     ctx.arcTo(x, y, x + r, y, r);
     ctx.closePath();
+  }
+
+  function fillRoundRect(x, y, w, h, r) {
+    roundRectPath(x, y, w, h, r);
     ctx.fill();
   }
 
-  // ── Info bar ─────────────────────────────────────────────
+  function strokeRoundRect(x, y, w, h, r) {
+    roundRectPath(x, y, w, h, r);
+    ctx.stroke();
+  }
+
+  // ── Info bar: slim glass top bar ─────────────────────────
 
   function drawInfoBar() {
     const s = gameState;
     const ib = Layout.infoBar();
     const sc = Layout.scale();
 
-    // Glass-morphism panel
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    const r = 6 * sc;
-    ctx.beginPath();
-    ctx.moveTo(ib.x + r, ib.y);
-    ctx.lineTo(ib.x + ib.w - r, ib.y);
-    ctx.arcTo(ib.x + ib.w, ib.y, ib.x + ib.w, ib.y + r, r);
-    ctx.lineTo(ib.x + ib.w, ib.y + ib.h);
-    ctx.lineTo(ib.x, ib.y + ib.h);
-    ctx.lineTo(ib.x, ib.y + r);
-    ctx.arcTo(ib.x, ib.y, ib.x + r, ib.y, r);
-    ctx.closePath();
-    ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    fillRoundRect(ib.x, ib.y, ib.w, ib.h, 6 * sc);
 
-    // Subtle top highlight line
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    // Gold bottom line
+    ctx.strokeStyle = 'rgba(200,160,60,0.3)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(ib.x + r, ib.y + 1);
-    ctx.lineTo(ib.x + ib.w - r, ib.y + 1);
+    ctx.moveTo(ib.x, ib.y + ib.h);
+    ctx.lineTo(ib.x + ib.w, ib.y + ib.h);
     ctx.stroke();
 
     ctx.textBaseline = 'middle';
@@ -159,8 +201,8 @@ const GameRenderer = (() => {
     if (s.roomCode) {
       const txt = `房间 ${s.roomCode}`;
       const tw = ctx.measureText(txt).width + 14 * sc;
-      drawPill(x, ib.y + ib.h / 2 - 9 * sc, tw, 18 * sc, 'rgba(255,255,255,0.1)');
-      ctx.fillStyle = '#e0e0e0';
+      drawPill(x, ib.y + ib.h / 2 - 9 * sc, tw, 18 * sc, 'rgba(255,255,255,0.08)');
+      ctx.fillStyle = '#d0c8b0';
       ctx.fillText(txt, x + 7 * sc, ib.y + ib.h / 2);
       x += tw + 10 * sc;
     }
@@ -168,8 +210,8 @@ const GameRenderer = (() => {
     if (s.phase === 'BIDDING') {
       const bidText = `叫地主  ${s.currentBid || 0}分`;
       const tw = ctx.measureText(bidText).width + 14 * sc;
-      drawPill(x, ib.y + ib.h / 2 - 9 * sc, tw, 18 * sc, 'rgba(255,193,7,0.18)');
-      ctx.fillStyle = '#ffc107';
+      drawPill(x, ib.y + ib.h / 2 - 9 * sc, tw, 18 * sc, 'rgba(255,193,7,0.15)');
+      ctx.fillStyle = '#ffd700';
       ctx.fillText(bidText, x + 7 * sc, ib.y + ib.h / 2);
       x += tw + 10 * sc;
     }
@@ -178,9 +220,9 @@ const GameRenderer = (() => {
       const base = Math.max(s.currentBid || 0, 1);
       const mText = `底分 ${base}  倍数 ×${s.multiplier}`;
       const tw = ctx.measureText(mText).width + 14 * sc;
-      const bg = s.multiplier >= 4 ? 'rgba(255,82,82,0.22)' : 'rgba(255,255,255,0.08)';
+      const bg = s.multiplier >= 4 ? 'rgba(255,82,82,0.2)' : 'rgba(255,255,255,0.06)';
       drawPill(x, ib.y + ib.h / 2 - 9 * sc, tw, 18 * sc, bg);
-      ctx.fillStyle = s.multiplier >= 4 ? '#ffa0a0' : '#e0e0e0';
+      ctx.fillStyle = s.multiplier >= 4 ? '#ffa0a0' : '#d0c8b0';
       ctx.fillText(mText, x + 7 * sc, ib.y + ib.h / 2);
     }
 
@@ -189,41 +231,218 @@ const GameRenderer = (() => {
 
   function drawPill(x, y, w, h, color) {
     ctx.fillStyle = color;
-    const r = h / 2;
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.arcTo(x + w, y, x + w, y + r, r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    ctx.lineTo(x + r, y + h);
-    ctx.arcTo(x, y + h, x, y + h - r, r);
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-    ctx.fill();
+    fillRoundRect(x, y, w, h, h / 2);
   }
 
-  // ── Opponents ────────────────────────────────────────────
+  // ── Score board: casino-chip style ───────────────────────
+
+  function drawScoreBoard() {
+    const s = gameState;
+    if (!s.players || s.players.length === 0) return;
+    const sc = Layout.scale();
+    const ib = Layout.infoBar();
+
+    let x = Layout.cssW() - 10 * sc;
+    for (let i = s.players.length - 1; i >= 0; i--) {
+      const p = s.players[i];
+      const isMe = p.seatIndex === s.mySeat;
+
+      // Chip-style score circle
+      const chipR = 11 * sc;
+      const chipX = x - chipR;
+      const chipY = ib.y + ib.h / 2;
+
+      // Chip background
+      ctx.beginPath();
+      ctx.arc(chipX, chipY, chipR, 0, Math.PI * 2);
+      const chipGrad = ctx.createRadialGradient(chipX - 2 * sc, chipY - 2 * sc, 0, chipX, chipY, chipR);
+      if (p.score > 0) {
+        chipGrad.addColorStop(0, '#ffd54f');
+        chipGrad.addColorStop(0.5, '#ffc107');
+        chipGrad.addColorStop(1, '#e6a800');
+      } else if (p.score < 0) {
+        chipGrad.addColorStop(0, '#ef9a9a');
+        chipGrad.addColorStop(0.5, '#ef5350');
+        chipGrad.addColorStop(1, '#c62828');
+      } else {
+        chipGrad.addColorStop(0, '#e0e0e0');
+        chipGrad.addColorStop(0.5, '#bdbdbd');
+        chipGrad.addColorStop(1, '#757575');
+      }
+      ctx.fillStyle = chipGrad;
+      ctx.fill();
+
+      // Chip rim
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 1.2 * sc;
+      ctx.stroke();
+
+      // Score number
+      const scoreStr = p.score === 0 ? '0' : `${p.score >= 0 ? '+' : ''}${p.score}`;
+      ctx.fillStyle = p.score > 0 ? '#5d4037' : p.score < 0 ? '#fff' : '#424242';
+      ctx.font = `bold ${11 * sc}px "Microsoft YaHei", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(scoreStr, chipX, chipY);
+
+      // Player name
+      ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
+      ctx.fillStyle = isMe ? '#ffd700' : 'rgba(255,255,255,0.6)';
+      const name = p.name.slice(0, 4);
+      ctx.fillText(name, chipX, chipY - chipR - 10 * sc);
+
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
+
+      x -= (chipR * 2 + 20 * sc);
+    }
+  }
+
+  // ── Opponents: avatar circles + cards ────────────────────
+
+  function drawOpponents() {
+    const s = gameState;
+    for (const player of s.players) {
+      if (player.seatIndex === s.mySeat) continue;
+      const dispPos = (player.seatIndex - s.mySeat + 3) % 3;
+      if (dispPos === 2) drawTopOpponent(player);
+      else if (dispPos === 1) drawLeftOpponent(player);
+    }
+  }
+
+  function drawPlayerAvatar(player, cx, cy, radius, sc) {
+    const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
+
+    // Outer glow ring
+    if (isActive) {
+      const pulse = 0.5 + 0.3 * Math.sin(Date.now() / 350);
+      ctx.shadowColor = `rgba(255,215,0,${pulse})`;
+      ctx.shadowBlur = 14 * sc;
+      ctx.strokeStyle = `rgba(255,200,50,${pulse})`;
+      ctx.lineWidth = 2.5 * sc;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius + 4 * sc, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.shadowColor = 'transparent';
+    }
+
+    // Avatar circle background
+    const avatarGrad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
+    if (player.isLandlord) {
+      avatarGrad.addColorStop(0, '#ffd54f');
+      avatarGrad.addColorStop(1, '#e6a800');
+    } else {
+      avatarGrad.addColorStop(0, '#5d4037');
+      avatarGrad.addColorStop(1, '#3e2723');
+    }
+    ctx.fillStyle = avatarGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Border
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1.2 * sc;
+    ctx.stroke();
+
+    // Initial letter
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${radius * 1.2}px "Microsoft YaHei", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const initial = player.name.charAt(0);
+    ctx.fillText(initial, cx, cy + 1 * sc);
+
+    // Crown for landlord
+    if (player.isLandlord) {
+      ctx.font = `${radius * 0.8}px "Microsoft YaHei", sans-serif`;
+      ctx.fillText('👑', cx, cy - radius - 8 * sc);
+    }
+  }
+
+  function drawTopOpponent(player) {
+    const sc = Layout.scale();
+    const area = Layout.p2Area();
+    const positions = Layout.getOpponentHPositions(player.cardCount);
+    const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
+
+    // Avatar
+    const avatarR = 16 * sc;
+    const avatarX = area.x + area.w / 2;
+    const avatarY = area.y - avatarR - 10 * sc;
+    drawPlayerAvatar(player, avatarX, avatarY, avatarR, sc);
+
+    // Name under avatar
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.font = `bold ${13 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.fillStyle = isActive ? '#ffd700' : '#d0c8b0';
+    ctx.fillText(player.name, avatarX, avatarY + avatarR + 4 * sc);
+
+    // Card count
+    ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText(`${player.cardCount}张`, avatarX, avatarY + avatarR + 20 * sc);
+    ctx.textAlign = 'start';
+
+    // Card backs
+    for (const pos of positions) {
+      CardDrawer.drawCardBack(ctx, pos.x, pos.y, pos.w, pos.h);
+    }
+  }
+
+  function drawLeftOpponent(player) {
+    const sc = Layout.scale();
+    const area = Layout.p1Area();
+    const positions = Layout.getOpponentVPositions(player.cardCount);
+    const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
+
+    // Avatar — positioned to the right of the card area
+    const avatarR = 14 * sc;
+    const avatarX = area.x + area.w + avatarR + 8 * sc;
+    const avatarY = area.y + area.h / 2;
+    drawPlayerAvatar(player, avatarX, avatarY, avatarR, sc);
+
+    // Name
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.font = `bold ${12 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.fillStyle = isActive ? '#ffd700' : '#d0c8b0';
+    ctx.fillText(player.name, avatarX, avatarY + avatarR + 4 * sc);
+
+    // Card count
+    ctx.font = `${10 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText(`${player.cardCount}张`, avatarX, avatarY + avatarR + 18 * sc);
+    ctx.textAlign = 'start';
+
+    // Card backs
+    for (const pos of positions) {
+      ctx.save();
+      ctx.translate(pos.x + pos.h / 2, pos.y + pos.w / 2);
+      ctx.rotate(-Math.PI / 2);
+      CardDrawer.drawCardBack(ctx, -pos.w / 2, -pos.h / 2, pos.w, pos.h);
+      ctx.restore();
+    }
+  }
+
+  // ── Bid results ──────────────────────────────────────────
 
   function drawBidResults() {
     const s = gameState;
     if (!s.bidResults || s.bidResults.length === 0) return;
     const sc = Layout.scale();
-    const isMob = false; // unified layout, no mobile distinction
     const pa = Layout.playArea();
     const now = Date.now();
 
-    // Filter to results shown in last 5 seconds
     const recent = s.bidResults.filter(r => now - r.time < 5000);
     if (recent.length === 0) return;
 
-    // Show each bid result as a floating label in the center area
     const startY = pa.y + pa.h * 0.15;
-    const lineH = isMob ? 24 * sc : 28 * sc;
+    const lineH = 26 * sc;
 
     ctx.textAlign = 'center';
-    ctx.font = `bold ${isMob ? 13 : 16 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.font = `bold ${15 * sc}px "Microsoft YaHei", sans-serif`;
 
     for (let i = 0; i < recent.length; i++) {
       const r = recent[i];
@@ -234,143 +453,13 @@ const GameRenderer = (() => {
       ctx.globalAlpha = alpha;
       ctx.fillStyle = r.amount > 0 ? '#ffd700' : 'rgba(255,255,255,0.5)';
       ctx.fillText(label, pa.x + pa.w / 2, startY + i * lineH);
-      ctx.globalAlpha = 1;
     }
+    ctx.globalAlpha = 1;
     ctx.textAlign = 'start';
-
-    // Clean up expired results
     s.bidResults = recent;
   }
 
-  function drawScoreBoard() {
-    const s = gameState;
-    if (!s.players || s.players.length === 0) return;
-    const sc = Layout.scale();
-    const ib = Layout.infoBar();
-
-    ctx.font = `bold ${12 * sc}px "Microsoft YaHei", sans-serif`;
-    ctx.textBaseline = 'middle';
-
-    let x = Layout.cssW() - 8 * sc;
-    for (let i = s.players.length - 1; i >= 0; i--) {
-      const p = s.players[i];
-      const isMe = p.seatIndex === s.mySeat;
-      const scoreStr = `${p.score >= 0 ? '+' : ''}${p.score}`;
-      const name = p.name.slice(0, 4);
-
-      // Draw score first (right-aligned)
-      ctx.font = `bold ${12 * sc}px "Microsoft YaHei", sans-serif`;
-      const scoreW = ctx.measureText(scoreStr).width;
-      ctx.fillStyle = p.score > 0 ? '#ffd700' : p.score < 0 ? '#ff8a80' : 'rgba(255,255,255,0.5)';
-      ctx.fillText(scoreStr, x - scoreW, ib.y + ib.h / 2);
-
-      // Draw name
-      ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
-      const nameW = ctx.measureText(name).width;
-      ctx.fillStyle = isMe ? '#ffd700' : 'rgba(255,255,255,0.6)';
-      ctx.fillText(name, x - scoreW - nameW - 10 * sc, ib.y + ib.h / 2);
-
-      x -= (scoreW + nameW + 18 * sc);
-    }
-    ctx.textBaseline = 'alphabetic';
-  }
-
-  function drawOpponents() {
-    const s = gameState;
-    const mySeat = s.mySeat;
-
-    for (const player of s.players) {
-      if (player.seatIndex === mySeat) continue;
-      const dispPos = (player.seatIndex - mySeat + 3) % 3;
-      if (dispPos === 2) drawTopOpponent(player);
-      else if (dispPos === 1) drawLeftOpponent(player);
-    }
-  }
-
-  function drawTopOpponent(player) {
-    const sc = Layout.scale();
-    const isMob = false; // unified layout, no mobile distinction
-    const area = Layout.p2Area();
-    const positions = Layout.getOpponentHPositions(player.cardCount);
-    const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
-
-    // Name with crown
-    let nameStr = player.name;
-    if (player.isLandlord) nameStr = '👑 ' + nameStr;
-    if (!player.isConnected) nameStr += ' ⊘';
-
-    const nameY = area.y - 4 * sc;
-
-    if (isActive) {
-      ctx.shadowColor = 'rgba(255,215,0,0.7)';
-      ctx.shadowBlur = 10 * sc;
-    }
-    ctx.font = `bold ${14 * sc}px "Microsoft YaHei", sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillStyle = isActive ? '#ffd700' : '#e8e8e8';
-    ctx.fillText(nameStr, area.x + area.w / 2, nameY);
-    ctx.shadowColor = 'transparent';
-
-    // Card count
-    ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.textBaseline = 'top';
-    ctx.fillText(`${player.cardCount}张`, area.x + area.w / 2, nameY + 4 * sc);
-    ctx.textBaseline = 'alphabetic';
-
-    ctx.textAlign = 'start';
-    ctx.textBaseline = 'alphabetic';
-
-    // Card backs
-    for (const pos of positions) {
-      CardDrawer.drawCardBack(ctx, pos.x, pos.y, pos.w, pos.h);
-    }
-  }
-
-  function drawLeftOpponent(player) {
-    const sc = Layout.scale();
-    const isMob = false; // unified layout, no mobile distinction
-    const area = Layout.p1Area();
-    const positions = Layout.getOpponentVPositions(player.cardCount);
-    const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
-
-    // Name below cards
-    let nameStr = player.name;
-    if (player.isLandlord) nameStr = '👑 ' + nameStr;
-    if (!player.isConnected) nameStr += ' ⊘';
-
-    ctx.textAlign = 'center';
-    ctx.font = `bold ${14 * sc}px "Microsoft YaHei", sans-serif`;
-
-    if (isActive) {
-      ctx.shadowColor = 'rgba(255,215,0,0.7)';
-      ctx.shadowBlur = 10 * sc;
-    }
-
-    const nameX = area.x + area.w / 2;
-    const nameY = area.y + area.h + 10 * sc;
-    ctx.fillStyle = isActive ? '#ffd700' : '#e8e8e8';
-    ctx.textBaseline = 'top';
-    ctx.fillText(nameStr, nameX, nameY);
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
-    ctx.fillText(`${player.cardCount}张`, nameX, nameY + 18 * sc);
-    ctx.shadowColor = 'transparent';
-    ctx.textAlign = 'start';
-    ctx.textBaseline = 'alphabetic';
-
-    // Rotated card backs
-    for (const pos of positions) {
-      ctx.save();
-      ctx.translate(pos.x + pos.h / 2, pos.y + pos.w / 2);
-      ctx.rotate(-Math.PI / 2);
-      CardDrawer.drawCardBack(ctx, -pos.w / 2, -pos.h / 2, pos.w, pos.h);
-      ctx.restore();
-    }
-  }
-
-  // ── Play area ─────────────────────────────────────────────
+  // ── Player action zones ──────────────────────────────────
 
   function drawPlayerActions() {
     const s = gameState;
@@ -387,30 +476,28 @@ const GameRenderer = (() => {
       const isMe = player.seatIndex === s.mySeat;
 
       if (lastAct.action === 'pass') {
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.font = `bold ${15 * sc}px "Microsoft YaHei", sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = `bold ${14 * sc}px "Microsoft YaHei", sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('不出', zone.x + zone.w / 2, zone.y + zone.h / 2);
         ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic';
       } else if (lastAct.action === 'play' && lastAct.cardIds) {
-        const smallW = cw * 0.62;
-        const smallH = ch * 0.62;
+        const smallW = cw * 0.58;
+        const smallH = ch * 0.58;
         const count = lastAct.cardIds.length;
-        const spacing = Math.min(smallW * 0.42, (zone.w - smallW) / Math.max(count - 1, 1));
+        const spacing = Math.min(smallW * 0.4, (zone.w - smallW) / Math.max(count - 1, 1));
         const totalW = smallW + (count - 1) * spacing;
         const startX = zone.x + (zone.w - totalW) / 2;
-        const startY = zone.y + 6 * sc;
+        const startY = zone.y + 4 * sc;
 
-        // Player name label
-        ctx.fillStyle = isMe ? '#ffd700' : 'rgba(255,255,255,0.7)';
-        ctx.font = `bold ${11 * sc}px "Microsoft YaHei", sans-serif`;
+        // Player name
+        ctx.fillStyle = isMe ? '#ffd700' : 'rgba(255,255,255,0.6)';
+        ctx.font = `bold ${10 * sc}px "Microsoft YaHei", sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        const nameY = startY - 4 * sc;
-        const label = isMe ? '你' : player.name;
-        ctx.fillText(label, zone.x + zone.w / 2, nameY);
+        ctx.fillText(isMe ? '你' : player.name, zone.x + zone.w / 2, startY - 2 * sc);
         ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic';
 
@@ -435,74 +522,55 @@ const GameRenderer = (() => {
     }
   }
 
+  // ── Play area: turn indicator ────────────────────────────
+
   function drawPlayArea() {
-    // Center area — turn indicator only (cards drawn in per-player action zones)
     const s = gameState;
     if (s.phase !== 'PLAYING') return;
     const sc = Layout.scale();
     const pa = Layout.playArea();
 
-    // Current player name indicator
     const cp = s.players.find(p => p.seatIndex === s.currentPlayerIndex);
     if (!cp) return;
 
     const isMe = cp.seatIndex === s.mySeat;
-    const prefix = isMe ? '轮到你' : `${cp.name}`;
-    const suffix = isMe ? '出牌' : '正在出牌...';
-    const fullText = `${prefix} ${suffix}`;
+    const fullText = isMe ? '轮到你出牌' : `${cp.name} 正在出牌...`;
 
-    // Background badge
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const fontSize = 18 * sc;
+    const fontSize = 17 * sc;
     ctx.font = `bold ${fontSize}px "Microsoft YaHei", sans-serif`;
     const tw = ctx.measureText(fullText).width;
-    const padX = 24 * sc;
-    const padY = 14 * sc;
+    const padX = 22 * sc, padY = 12 * sc;
     const bx = pa.x + pa.w / 2 - tw / 2 - padX;
-    const by = pa.y + pa.h * 0.58;
-    const bw = tw + padX * 2;
-    const bh = fontSize + padY * 2;
+    const by = pa.y + pa.h * 0.55;
+    const bw = tw + padX * 2, bh = fontSize + padY * 2;
 
     // Glow
-    ctx.shadowColor = isMe ? 'rgba(255,215,0,0.6)' : 'rgba(255,255,255,0.2)';
-    ctx.shadowBlur = 16 * sc;
+    ctx.shadowColor = isMe ? 'rgba(255,215,0,0.5)' : 'rgba(255,255,255,0.15)';
+    ctx.shadowBlur = 14 * sc;
 
-    // Background
-    const grad = ctx.createLinearGradient(bx, by, bx, by + bh);
-    grad.addColorStop(0, 'rgba(0,0,0,0.75)');
-    grad.addColorStop(1, 'rgba(0,0,0,0.6)');
-    ctx.fillStyle = grad;
-    const r = 10 * sc;
-    ctx.beginPath();
-    ctx.moveTo(bx + r, by);
-    ctx.lineTo(bx + bw - r, by);
-    ctx.arcTo(bx + bw, by, bx + bw, by + r, r);
-    ctx.lineTo(bx + bw, by + bh - r);
-    ctx.arcTo(bx + bw, by + bh, bx + bw - r, by + bh, r);
-    ctx.lineTo(bx + r, by + bh);
-    ctx.arcTo(bx, by + bh, bx, by + bh - r, r);
-    ctx.lineTo(bx, by + r);
-    ctx.arcTo(bx, by, bx + r, by, r);
-    ctx.closePath();
-    ctx.fill();
+    // Dark badge
+    const badgeGrad = ctx.createLinearGradient(bx, by, bx, by + bh);
+    badgeGrad.addColorStop(0, 'rgba(0,0,0,0.8)');
+    badgeGrad.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = badgeGrad;
+    fillRoundRect(bx, by, bw, bh, 10 * sc);
     ctx.shadowColor = 'transparent';
 
-    // Border
-    ctx.strokeStyle = isMe ? 'rgba(255,215,0,0.5)' : 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 1.5 * sc;
-    ctx.stroke();
+    // Gold border for self, subtle for others
+    ctx.strokeStyle = isMe ? 'rgba(255,200,50,0.5)' : 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = isMe ? 2 * sc : 1 * sc;
+    strokeRoundRect(bx, by, bw, bh, 10 * sc);
 
-    // Text
-    ctx.fillStyle = isMe ? '#ffd700' : '#e0e0e0';
+    ctx.fillStyle = isMe ? '#ffd700' : '#d0c8b0';
     ctx.fillText(fullText, bx + bw / 2, by + bh / 2);
 
-    // Pass count badge
     if (s.passCount > 0) {
-      ctx.font = `${13 * sc}px "Microsoft YaHei", sans-serif`;
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = `${12 * sc}px "Microsoft YaHei", sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
       const passText = s.passCount >= 2 ? `已连续不出 ×${s.passCount}` : '已有人不出';
-      ctx.fillText(passText, pa.x + pa.w / 2, by + bh + 22 * sc);
+      ctx.fillText(passText, pa.x + pa.w / 2, by + bh + 20 * sc);
     }
 
     ctx.textAlign = 'start';
@@ -513,15 +581,11 @@ const GameRenderer = (() => {
 
   function drawBonusCards() {
     const s = gameState;
-    // Show bonus cards in DEALING, BIDDING, and at the start of PLAYING
     if (s.phase === 'WAITING' || s.phase === 'FINISHED') return;
     if (!s.bonusCards || s.bonusCards.length === 0) return;
 
     const positions = Layout.getBonusCardPositions();
-    const isMob = false; // unified layout, no mobile distinction
     const sc = Layout.scale();
-
-    // After landlord is determined, show cards face-up; during bidding show face-down
     const showFaceUp = s.phase === 'PLAYING';
 
     for (let i = 0; i < s.bonusCards.length; i++) {
@@ -535,7 +599,7 @@ const GameRenderer = (() => {
     }
 
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = `${isMob ? 10 : 12 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillText('底牌', positions[1].x + positions[1].w / 2,
       positions[1].y + positions[1].h + 14 * sc);
@@ -549,22 +613,19 @@ const GameRenderer = (() => {
     if (!s.hand || s.hand.length === 0) return;
 
     const positions = Layout.getHandPositions(s.hand.length);
-    const isMob = false; // unified layout, no mobile distinction
     const sc = Layout.scale();
-
-    // Card count indicator
     const p0 = Layout.p0Area();
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = `${isMob ? 10 : 12 * sc}px "Microsoft YaHei", sans-serif`;
+
+    // Card count
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillText(`${s.hand.length}张`, p0.x + p0.w / 2, p0.y - 2 * sc);
     ctx.textAlign = 'start';
 
-    // Selected count
     if (s.selectedCards && s.selectedCards.size > 0) {
       ctx.fillStyle = '#ffd700';
-      ctx.fillText(`已选 ${s.selectedCards.size} 张`,
-        p0.x + p0.w - 60 * sc, p0.y - 2 * sc);
+      ctx.fillText(`已选 ${s.selectedCards.size} 张`, p0.x + p0.w - 60 * sc, p0.y - 2 * sc);
     }
 
     for (let i = 0; i < s.hand.length; i++) {
@@ -574,7 +635,7 @@ const GameRenderer = (() => {
     }
   }
 
-  // ── Buttons ──────────────────────────────────────────────
+  // ── Buttons: premium gold-accent ─────────────────────────
 
   function drawButtons() {
     const s = gameState;
@@ -586,69 +647,43 @@ const GameRenderer = (() => {
 
     for (const btn of btns) {
       const r = btn.h / 2;
-
       ctx.save();
 
-      // Shadow
       if (!btn.disabled) {
-        ctx.shadowColor = 'rgba(0,0,0,0.4)';
-        ctx.shadowBlur = 6 * sc;
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 8 * sc;
         ctx.shadowOffsetY = 3 * sc;
       }
 
-      // Background
       const grad = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.h);
       if (btn.disabled) {
-        grad.addColorStop(0, 'rgba(255,255,255,0.05)');
-        grad.addColorStop(1, 'rgba(255,255,255,0.03)');
+        grad.addColorStop(0, 'rgba(255,255,255,0.04)');
+        grad.addColorStop(1, 'rgba(255,255,255,0.02)');
       } else if (btn.type === 'primary') {
-        grad.addColorStop(0, '#FFB74D');
-        grad.addColorStop(0.5, '#FF9800');
-        grad.addColorStop(1, '#F57C00');
+        grad.addColorStop(0, '#ffb74d');
+        grad.addColorStop(0.4, '#f59e2e');
+        grad.addColorStop(1, '#e68900');
       } else if (btn.type === 'danger') {
-        grad.addColorStop(0, '#EF5350');
-        grad.addColorStop(0.5, '#E53935');
-        grad.addColorStop(1, '#C62828');
+        grad.addColorStop(0, '#ef5350');
+        grad.addColorStop(1, '#b71c1c');
       } else if (btn.type === 'bid') {
-        grad.addColorStop(0, '#64B5F6');
-        grad.addColorStop(0.5, '#42A5F5');
-        grad.addColorStop(1, '#1E88E5');
+        grad.addColorStop(0, '#5c9ce0');
+        grad.addColorStop(1, '#1a6dc4');
       } else {
-        grad.addColorStop(0, 'rgba(255,255,255,0.16)');
-        grad.addColorStop(1, 'rgba(255,255,255,0.08)');
+        grad.addColorStop(0, 'rgba(255,255,255,0.14)');
+        grad.addColorStop(1, 'rgba(255,255,255,0.06)');
       }
       ctx.fillStyle = grad;
-
-      ctx.beginPath();
-      ctx.moveTo(btn.x + r, btn.y);
-      ctx.lineTo(btn.x + btn.w - r, btn.y);
-      ctx.arcTo(btn.x + btn.w, btn.y, btn.x + btn.w, btn.y + r, r);
-      ctx.lineTo(btn.x + btn.w, btn.y + btn.h - r);
-      ctx.arcTo(btn.x + btn.w, btn.y + btn.h, btn.x + btn.w - r, btn.y + btn.h, r);
-      ctx.lineTo(btn.x + r, btn.y + btn.h);
-      ctx.arcTo(btn.x, btn.y + btn.h, btn.x, btn.y + btn.h - r, r);
-      ctx.lineTo(btn.x, btn.y + r);
-      ctx.arcTo(btn.x, btn.y, btn.x + r, btn.y, r);
-      ctx.closePath();
-      ctx.fill();
-
+      fillRoundRect(btn.x, btn.y, btn.w, btn.h, r);
       ctx.shadowColor = 'transparent';
 
-      // Top glossy highlight
+      // Top highlight
       if (!btn.disabled) {
         ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(btn.x + r, btn.y);
-        ctx.lineTo(btn.x + btn.w - r, btn.y);
-        ctx.arcTo(btn.x + btn.w, btn.y, btn.x + btn.w, btn.y + r, r);
-        ctx.lineTo(btn.x + btn.w, btn.y + r);
-        ctx.lineTo(btn.x, btn.y + r);
-        ctx.lineTo(btn.x, btn.y + r);
-        ctx.arcTo(btn.x, btn.y, btn.x + r, btn.y, r);
-        ctx.closePath();
+        roundRectPath(btn.x, btn.y, btn.w, r, r);
         ctx.clip();
         const hl = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + r);
-        hl.addColorStop(0, 'rgba(255,255,255,0.35)');
+        hl.addColorStop(0, 'rgba(255,255,255,0.3)');
         hl.addColorStop(1, 'rgba(255,255,255,0)');
         ctx.fillStyle = hl;
         ctx.fillRect(btn.x, btn.y, btn.w, r);
@@ -656,33 +691,23 @@ const GameRenderer = (() => {
       }
 
       // Border
-      ctx.strokeStyle = btn.disabled ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.2)';
+      ctx.strokeStyle = btn.disabled ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.18)';
       ctx.lineWidth = 1 * sc;
-      ctx.beginPath();
-      ctx.moveTo(btn.x + r, btn.y);
-      ctx.lineTo(btn.x + btn.w - r, btn.y);
-      ctx.arcTo(btn.x + btn.w, btn.y, btn.x + btn.w, btn.y + r, r);
-      ctx.lineTo(btn.x + btn.w, btn.y + btn.h - r);
-      ctx.arcTo(btn.x + btn.w, btn.y + btn.h, btn.x + btn.w - r, btn.y + btn.h, r);
-      ctx.lineTo(btn.x + r, btn.y + btn.h);
-      ctx.arcTo(btn.x, btn.y + btn.h, btn.x, btn.y + btn.h - r, r);
-      ctx.lineTo(btn.x, btn.y + r);
-      ctx.arcTo(btn.x, btn.y, btn.x + r, btn.y, r);
-      ctx.closePath();
-      ctx.stroke();
+      strokeRoundRect(btn.x, btn.y, btn.w, btn.h, r);
 
       // Text
-      ctx.fillStyle = btn.disabled ? 'rgba(255,255,255,0.2)' : '#fff';
+      ctx.fillStyle = btn.disabled ? 'rgba(255,255,255,0.18)' : '#fff';
       ctx.font = `bold ${15 * sc}px "Microsoft YaHei", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.shadowColor = btn.disabled ? 'transparent' : 'rgba(0,0,0,0.3)';
-      ctx.shadowBlur = 2 * sc;
+      if (!btn.disabled) {
+        ctx.shadowColor = 'rgba(0,0,0,0.35)';
+        ctx.shadowBlur = 2 * sc;
+      }
       ctx.fillText(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
       ctx.shadowColor = 'transparent';
       ctx.textAlign = 'start';
       ctx.textBaseline = 'alphabetic';
-
       ctx.restore();
     }
   }
@@ -700,13 +725,8 @@ const GameRenderer = (() => {
       for (let i = 0; i < 4; i++) {
         btns.push({
           id: i === 0 ? 'bid_0' : `bid_${i}`,
-          label: labels[i],
-          x: area.x + i * (bW + 3 * sc),
-          y: area.y,
-          w: bW,
-          h: area.h,
-          type: types[i],
-          disabled: false
+          label: labels[i], x: area.x + i * (bW + 3 * sc), y: area.y,
+          w: bW, h: area.h, type: types[i], disabled: false
         });
       }
     } else if (s.phase === 'PLAYING' && s.myTurn) {
@@ -726,14 +746,12 @@ const GameRenderer = (() => {
       });
     } else if (s.phase === 'PLAYING' && !s.myTurn) {
       const cp = s.players.find(p => p.seatIndex === s.currentPlayerIndex);
-      const name = cp ? cp.name : '';
       btns.push({
-        id: 'waiting', label: `${name} 正在出牌...`,
+        id: 'waiting', label: cp ? `${cp.name} 正在出牌...` : '等待中...',
         x: area.x, y: area.y, w: area.w, h: area.h,
         type: 'secondary', disabled: true
       });
     }
-
     return btns;
   }
 
@@ -741,202 +759,135 @@ const GameRenderer = (() => {
 
   function drawTimerBar() {
     const s = gameState;
-    if (!s.turnTimeLeft || s.turnTimeLeft <= 0) return;
-    if (!s.myTurn) return;
+    if (!s.turnTimeLeft || s.turnTimeLeft <= 0 || !s.myTurn) return;
 
     const area = Layout.timerArea();
     const progress = s.turnTimeLeft / s.turnTimeTotal;
     const sc = Layout.scale();
-
-    // Make bar taller for visibility
-    const trackH = 10 * sc;
+    const trackH = 9 * sc;
     const trackY = area.y + area.h / 2 - trackH / 2;
-
-    // Background track
     const trackR = trackH / 2;
+
+    // Track
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.beginPath();
-    ctx.moveTo(area.x + trackR, trackY);
-    ctx.lineTo(area.x + area.w - trackR, trackY);
-    ctx.arcTo(area.x + area.w, trackY, area.x + area.w, trackY + trackR, trackR);
-    ctx.lineTo(area.x + area.w, trackY + trackH - trackR);
-    ctx.arcTo(area.x + area.w, trackY + trackH, area.x + area.w - trackR, trackY + trackH, trackR);
-    ctx.lineTo(area.x + trackR, trackY + trackH);
-    ctx.arcTo(area.x, trackY + trackH, area.x, trackY + trackH - trackR, trackR);
-    ctx.lineTo(area.x, trackY + trackR);
-    ctx.arcTo(area.x, trackY, area.x + trackR, trackY, trackR);
-    ctx.closePath();
-    ctx.fill();
+    fillRoundRect(area.x, trackY, area.w, trackH, trackR);
 
     if (progress <= 0) return;
 
-    // Color
     let color;
     if (progress > 0.6) color = '#66BB6A';
     else if (progress > 0.25) color = '#FFA726';
     else color = '#EF5350';
 
-    // Fill
     const fillW = area.w * progress;
     if (fillW > trackR * 2) {
       const fillGrad = ctx.createLinearGradient(area.x, 0, area.x + fillW, 0);
       fillGrad.addColorStop(0, color);
       fillGrad.addColorStop(1, progress < 0.25 ? '#ff1744' : color);
       ctx.fillStyle = fillGrad;
-      ctx.beginPath();
-      ctx.moveTo(area.x + trackR, trackY);
-      ctx.lineTo(area.x + fillW - trackR, trackY);
-      ctx.arcTo(area.x + fillW, trackY, area.x + fillW, trackY + trackR, trackR);
-      ctx.lineTo(area.x + fillW, trackY + trackH - trackR);
-      ctx.arcTo(area.x + fillW, trackY + trackH, area.x + fillW - trackR, trackY + trackH, trackR);
-      ctx.lineTo(area.x + trackR, trackY + trackH);
-      ctx.arcTo(area.x, trackY + trackH, area.x, trackY + trackH - trackR, trackR);
-      ctx.lineTo(area.x, trackY + trackR);
-      ctx.arcTo(area.x, trackY, area.x + trackR, trackY, trackR);
-      ctx.closePath();
-      ctx.fill();
+      fillRoundRect(area.x, trackY, fillW, trackH, trackR);
     }
 
-    // Pulse when low
     if (progress < 0.25) {
-      const pulse = 0.2 + 0.2 * Math.sin(Date.now() / 150);
+      const pulse = 0.15 + 0.2 * Math.sin(Date.now() / 140);
       ctx.fillStyle = `rgba(255,23,68,${pulse})`;
-      ctx.fill();
+      fillRoundRect(area.x, trackY, fillW, trackH, trackR);
     }
 
-    // Countdown text ABOVE the bar
     const secs = Math.ceil(s.turnTimeLeft);
     ctx.fillStyle = '#fff';
-    const fontSize = progress < 0.25 ? 20 * sc : 16 * sc;
+    const fontSize = progress < 0.25 ? 19 * sc : 15 * sc;
     ctx.font = `bold ${fontSize}px "Microsoft YaHei", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowColor = 'rgba(0,0,0,0.7)';
     ctx.shadowBlur = 4 * sc;
-    const countText = progress < 0.25 ? `⏰ ${secs}s` : `${secs}s`;
-    ctx.fillText(countText, area.x + area.w / 2, trackY - 8 * sc);
+    ctx.fillText(progress < 0.25 ? `⏰ ${secs}s` : `${secs}s`, area.x + area.w / 2, trackY - 6 * sc);
     ctx.shadowColor = 'transparent';
     ctx.textAlign = 'start';
     ctx.textBaseline = 'alphabetic';
   }
 
-  // ── Toast system ─────────────────────────────────────────
+  // ── Toast ────────────────────────────────────────────────
 
   function drawToast() {
     const s = gameState;
     if (!s._toast || !s._toast.text) return;
-
     const elapsed = Date.now() - s._toast.startTime;
-    if (elapsed > s._toast.duration) {
-      s._toast = null;
-      return;
-    }
+    if (elapsed > s._toast.duration) { s._toast = null; return; }
 
     const area = Layout.toastArea();
     const sc = Layout.scale();
-    const isMob = false; // unified layout, no mobile distinction
-
-    // Fade in/out
     let alpha = 1;
     const fadeMs = 400;
     if (elapsed < fadeMs) alpha = elapsed / fadeMs;
-    else if (elapsed > s._toast.duration - fadeMs) {
-      alpha = (s._toast.duration - elapsed) / fadeMs;
-    }
+    else if (elapsed > s._toast.duration - fadeMs) alpha = (s._toast.duration - elapsed) / fadeMs;
     alpha = Math.max(0, Math.min(1, alpha));
 
     ctx.globalAlpha = alpha;
-    const tw = Math.min(area.w, ctx.measureText(s._toast.text).width + 36 * sc);
-    const bx = area.x + (area.w - tw) / 2;
-    const r = area.h / 2;
+    const tw = Math.min(area.w, ctx.measureText(s._toast.text).width + 32 * sc);
+    const bx = area.x + (area.w - tw) / 2, r = area.h / 2;
 
-    // Glass background
-    ctx.fillStyle = 'rgba(0,0,0,0.8)';
-    ctx.beginPath();
-    ctx.moveTo(bx + r, area.y);
-    ctx.lineTo(bx + tw - r, area.y);
-    ctx.arcTo(bx + tw, area.y, bx + tw, area.y + r, r);
-    ctx.lineTo(bx + tw, area.y + area.h - r);
-    ctx.arcTo(bx + tw, area.y + area.h, bx + tw - r, area.y + area.h, r);
-    ctx.lineTo(bx + r, area.y + area.h);
-    ctx.arcTo(bx, area.y + area.h, bx, area.y + area.h - r, r);
-    ctx.lineTo(bx, area.y + r);
-    ctx.arcTo(bx, area.y, bx + r, area.y, r);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.fillStyle = 'rgba(0,0,0,0.85)';
+    fillRoundRect(bx, area.y, tw, area.h, r);
+    ctx.strokeStyle = 'rgba(200,160,60,0.3)';
     ctx.lineWidth = 1;
-    ctx.stroke();
+    strokeRoundRect(bx, area.y, tw, area.h, r);
 
     ctx.fillStyle = '#fff';
     ctx.font = `bold ${13 * sc}px "Microsoft YaHei", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-    ctx.shadowBlur = 2 * sc;
     ctx.fillText(s._toast.text, bx + tw / 2, area.y + area.h / 2);
-    ctx.shadowColor = 'transparent';
     ctx.textAlign = 'start';
     ctx.textBaseline = 'alphabetic';
     ctx.globalAlpha = 1;
   }
 
-  // ── Special effects ──────────────────────────────────────
+  // ── Effects ──────────────────────────────────────────────
 
-  let flashAlpha = 0;
-  let particles = [];
-  let lastBombTime = 0;
-  let lastWinTime = 0;
+  let flashAlpha = 0, particles = [], lastBombTime = 0, lastWinTime = 0;
 
-  function triggerBombFlash() {
-    flashAlpha = 0.35;
-    lastBombTime = Date.now();
-  }
+  function triggerBombFlash() { flashAlpha = 0.35; lastBombTime = Date.now(); }
 
   function triggerWinParticles(W, H) {
     lastWinTime = Date.now();
     const sc = Layout.scale();
     particles = [];
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 45; i++) {
       particles.push({
-        x: W * 0.1 + Math.random() * W * 0.8,
+        x: W * 0.15 + Math.random() * W * 0.7,
         y: H * 0.3 + Math.random() * H * 0.4,
-        vx: (Math.random() - 0.5) * 4 * sc,
-        vy: -Math.random() * 6 * sc - 2 * sc,
+        vx: (Math.random() - 0.5) * 5 * sc,
+        vy: -Math.random() * 7 * sc - 2 * sc,
         life: 1,
-        size: 3 * sc + Math.random() * 5 * sc,
-        color: ['#ffd700', '#ff6b6b', '#4caf50', '#2196f3', '#ff9800'][Math.floor(Math.random() * 5)]
+        size: 2 * sc + Math.random() * 6 * sc,
+        color: ['#ffd700', '#ff6b6b', '#4caf50', '#2196f3', '#ff9800', '#e040fb'][Math.floor(Math.random() * 6)]
       });
     }
   }
 
   function drawEffects() {
-    const W = Layout.cssW();
-    const H = Layout.cssH();
-    const s = gameState;
+    const W = Layout.cssW(), H = Layout.cssH();
     const now = Date.now();
 
-    // Bomb flash
     if (flashAlpha > 0) {
       const elapsed = (now - lastBombTime) / 1000;
       flashAlpha = Math.max(0, 0.35 - elapsed * 0.5);
       if (flashAlpha > 0) {
-        ctx.fillStyle = `rgba(255, 50, 50, ${flashAlpha})`;
+        ctx.fillStyle = `rgba(255,50,50,${flashAlpha})`;
         ctx.fillRect(0, 0, W, H);
-        // Also slight shake via shadow
-        const shake = Math.sin(elapsed * 60) * 4 * flashAlpha;
-        ctx.translate(shake, 0);
+        ctx.translate(Math.sin(elapsed * 60) * 4 * flashAlpha, 0);
       }
     }
 
-    // Win particles
     if (particles.length > 0) {
       const elapsed = (now - lastWinTime) / 1000;
       let alive = false;
       for (const p of particles) {
         p.x += p.vx;
         p.y += p.vy;
-        p.vy += 0.08; // gravity
+        p.vy += 0.08;
         p.life -= 0.015;
         if (p.life <= 0) continue;
         alive = true;
@@ -949,7 +900,6 @@ const GameRenderer = (() => {
     }
   }
 
-  // Expose effect triggers
   window.triggerBombEffect = triggerBombFlash;
   window.triggerWinEffect = () => triggerWinParticles(Layout.cssW(), Layout.cssH());
 
