@@ -192,6 +192,50 @@ const Layout = (() => {
     return topActionZone();
   }
 
+  // ── Character illustration zones ─────────────────────────
+
+  // Top opponent: between info bar and play area, centered
+  function topCharZone() {
+    const ib = infoBar();
+    const pa = playArea();
+    const gap = pa.y - (ib.y + ib.h);
+    const zoneH = Math.min(gap - 6 * scale, 150 * scale);
+    const zoneW = 120 * scale;
+    return {
+      x: w / 2 - zoneW / 2,
+      y: ib.y + ib.h + (gap - zoneH) / 2,
+      w: zoneW,
+      h: zoneH,
+    };
+  }
+
+  // Left opponent: left margin area
+  function leftCharZone() {
+    const pa = playArea();
+    const margin = pa.x;
+    const zoneW = Math.min(margin - 12 * scale, 120 * scale);
+    const zoneH = 160 * scale;
+    return {
+      x: 6 * scale,
+      y: pa.y + pa.h / 2 - zoneH / 2,
+      w: zoneW,
+      h: Math.min(zoneH, pa.h - 10 * scale),
+    };
+  }
+
+  // Self player: bottom-left, left of hand area
+  function selfCharZone() {
+    const p0 = p0Area();
+    const zoneW = 110 * scale;
+    const zoneH = 145 * scale;
+    return {
+      x: 6 * scale,
+      y: p0.y + p0.h / 2 - zoneH / 2,
+      w: Math.min(zoneW, p0.x - 8 * scale),
+      h: Math.min(zoneH, p0.h + 20 * scale),
+    };
+  }
+
   // ── Hit testing ──────────────────────────────────────────
 
   function hitTestHand(mx, my, handSize, selectedSet) {
@@ -246,6 +290,7 @@ const Layout = (() => {
     getHandPositions, getOpponentHPositions, getOpponentVPositions,
     getPlayedCardPositions, getBonusCardPositions,
     selfActionZone, leftActionZone, topActionZone, getActionZone,
+    topCharZone, leftCharZone, selfCharZone,
     hitTestHand, hitTestButton,
   };
 })();
