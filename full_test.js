@@ -357,7 +357,106 @@ async function main() {
     }
   }
 
-  // ── Test 7: Multiple full games ───────────────────────────
+  // ── Test 7: Layout zone overlap check ───────────────────
+  console.log('\n--- 图层重叠测试 ---');
+
+  // Inline layout calculation (mirrors layout.js logic)
+  function calcLayout(gw, gh) {
+    const scale = Math.min(gw / 1200, gh / 675);
+    const cw = 75 * scale, ch = 108 * scale;
+    const ib = { x: 0, y: 0, w: gw, h: 46 * scale };
+    const pa = {
+      x: 180 * scale,
+      y: ib.y + ib.h + 170 * scale,
+      w: gw - 360 * scale,
+      h: gh - ib.h - ch - 130 * scale - 170 * scale
+    };
+    // topChar
+    const topCharW = 100 * scale, topCharH = 130 * scale;
+    const topChar = {
+      x: gw / 2 - topCharW / 2,
+      y: ib.y + ib.h + 4 * scale,
+      w: topCharW,
+      h: Math.min(topCharH, pa.y - ib.y - ib.h - 8 * scale)
+    };
+    // bonus cards (upper-right)
+    const smallW = cw * 0.55, smallH = ch * 0.55;
+    const gap = smallW * 0.3;
+    const bcStartX = gw - 10 * scale - (smallW * 3 + gap * 2);
+    const bcZone = {
+      x: bcStartX, y: ib.y + ib.h + 6 * scale,
+      w: smallW * 3 + gap * 2, h: smallH
+    };
+    // selfChar
+    const charW2 = 110 * scale, charH2 = 140 * scale;
+    const btnH = 52 * scale;
+    const selfChar = {
+      x: 6 * scale,
+      y: gh - btnH - 4 * scale - charH2,
+      w: charW2,
+      h: charH2
+    };
+    // p0 hand area
+    const p0 = {
+      x: charW2 + 10 * scale,
+      w: gw - charW2 - 16 * scale
+    };
+    // leftChar
+    const leftCharW = 85 * scale, leftCharH = 110 * scale;
+    const p1Y = pa.y + pa.h / 2 - (leftCharH + 20 * scale + ch * 0.55 * 4) / 2;
+    const leftChar = {
+      x: 4 * scale, y: p1Y - leftCharH - 8 * scale,
+      w: Math.min(leftCharW, 100 * scale), h: leftCharH
+    };
+
+    return { topChar, bcZone, selfChar, p0, leftChar, pa, gw, gh };
+  }
+
+  const testRes = [
+    { w: 1920, h: 1080, n: '1080p' },
+    { w: 2560, h: 1440, n: '1440p' },
+    { w: 3440, h: 1440, n: 'ultrawide' },
+    { w: 1200, h: 675, n: 'base' },
+    { w: 800, h: 600, n: 'small' },
+  ];
+
+  for (const r of testRes) {
+    const L = calcLayout(r.w, r.h);
+
+    // Bonus cards (top-right) should not overlap top character (center-top)
+    const bcRight = L.bcZone.x + L.bcZone.w;
+    const tcRight = L.topChar.x + L.topChar.w;
+    const xOverlap = !(bcRight < L.topChar.x || L.bcZone.x > tcRight);
+    const yOverlap = !(L.bcZone.y + L.bcZone.h < L.topChar.y || L.bcZone.y > L.topChar.y + L.topChar.h);
+    check(`[${r.n}] 底牌不挡顶部角色`, !(xOverlap && yOverlap));
+
+    // Self character right edge should not exceed hand left edge
+    const scRight = L.selfChar.x + L.selfChar.w;
+    check(`[${r.n}] 自己角色不挡手牌`, scRight <= L.p0.x + 2);
+
+    // All zones within screen bounds
+    check(`[${r.n}] 顶部角色在屏幕内`,
+      L.topChar.x >= 0 && L.topChar.x + L.topChar.w <= L.gw &&
+      L.topChar.y >= 0 && L.topChar.y + L.topChar.h <= L.gh);
+    check(`[${r.n}] 左侧角色在屏幕内`,
+      L.leftChar.x >= 0 && L.leftChar.x + L.leftChar.w <= L.gw &&
+      L.leftChar.y >= 0 && L.leftChar.y + L.leftChar.h <= L.gh);
+    check(`[${r.n}] 自己角色在屏幕内`,
+      L.selfChar.x >= 0 && L.selfChar.x + L.selfChar.w <= L.gw &&
+      L.selfChar.y >= 0 && L.selfChar.y + L.selfChar.h <= L.gh);
+    check(`[${r.n}] 底牌在屏幕内`,
+      L.bcZone.x >= 0 && L.bcZone.x + L.bcZone.w <= L.gw);
+
+    // Play area within bounds
+    check(`[${r.n}] 桌面不超出`,
+      L.pa.x >= 0 && L.pa.x + L.pa.w <= L.gw && L.pa.y >= 0 && L.pa.y + L.pa.h <= L.gh);
+
+    // Top character bottom should not overlap play area top
+    check(`[${r.n}] 顶部角色不挡桌面`,
+      L.topChar.y + L.topChar.h <= L.pa.y + 4);
+  }
+
+  // ── Test 8: Multiple full games ───────────────────────────
   console.log('\n--- 多局完整对战 ---');
   for (let i = 0; i < 3; i++) {
     await testFullGame();

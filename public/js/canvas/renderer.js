@@ -600,6 +600,16 @@ const GameRenderer = (() => {
     const sc = Layout.scale();
     const showFaceUp = s.phase === 'PLAYING';
 
+    // "底牌" label above the group
+    const mid = positions[1];
+    ctx.fillStyle = 'rgba(255,215,0,0.6)';
+    ctx.font = `bold ${10 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('底牌', mid.x + mid.w / 2, mid.y - 3 * sc);
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
+
     for (let i = 0; i < s.bonusCards.length; i++) {
       if (showFaceUp) {
         CardDrawer.drawCardFace(ctx, s.bonusCards[i],
@@ -609,13 +619,6 @@ const GameRenderer = (() => {
           positions[i].w, positions[i].h);
       }
     }
-
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('底牌', positions[1].x + positions[1].w / 2,
-      positions[1].y + positions[1].h + 14 * sc);
-    ctx.textAlign = 'start';
   }
 
   // ── Own hand ─────────────────────────────────────────────

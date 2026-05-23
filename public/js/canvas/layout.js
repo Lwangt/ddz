@@ -207,12 +207,16 @@ const Layout = (() => {
   function getBonusCardPositions() {
     const cw = cardW(), ch = cardH();
     const ib = infoBar();
-    const gap = cw * 0.5;
+    const smallW = cw * 0.55;
+    const smallH = ch * 0.55;
+    const gap = smallW * 0.3;
+    // Upper-right corner, below info bar
+    const startX = w - 10 * scale - (smallW * 3 + gap * 2);
     return [0, 1, 2].map(i => ({
-      x: 10 * scale + i * (cw * 0.75 + gap),
+      x: startX + i * (smallW + gap),
       y: ib.y + ib.h + 6 * scale,
-      w: cw * 0.75,
-      h: ch * 0.75
+      w: smallW,
+      h: smallH
     }));
   }
 
