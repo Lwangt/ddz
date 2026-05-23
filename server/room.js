@@ -172,6 +172,8 @@ class Room {
   // ── Bidding ───────────────────────────────────────────────
 
   startBidding() {
+    // Prevent duplicate calls
+    if (this.state !== C.PHASE_DEALING && this.state !== C.PHASE_WAITING) return;
     this.state = C.PHASE_BIDDING;
     this.currentBid = 0;
     this.highestBidderIndex = -1;
@@ -218,7 +220,7 @@ class Room {
   }
 
   processBid(socketId, amount) {
-    if (this.state !== C.PHASE_BIDDING && this.state !== 'BIDDING_DONE') return;
+    if (this.state !== C.PHASE_BIDDING) return;
 
     const player = this.getPlayer(socketId);
     if (!player) return;
@@ -258,20 +260,27 @@ class Room {
   finishBidding() {
     if (this.state !== C.PHASE_BIDDING) return;
     this.clearBidTimer();
-    this.state = 'BIDDING_DONE'; // prevent more bids immediately
 
     // Auto-fill missing responses as pass
     for (const p of this.players) {
-      if (!(p.seatIndex in this.bidResponses)) {
+      if (p && !(p.seatIndex in this.bidResponses)) {
         p.bidAmount = 0;
         this.bidResponses[p.seatIndex] = 0;
         this.toRoom('bid_made', { seatIndex: p.seatIndex, playerName: p.name, amount: 0, currentBid: this.currentBid });
       }
     }
 
-    if (this.highestBidderIndex === -1 || this.currentBid === 0) {
+    // Find actual highest bidder (safe lookup)
+    let best = -1, bestAmt = 0;
+    for (const p of this.players) {
+      if (p && p.bidAmount > bestAmt) { bestAmt = p.bidAmount; best = p.seatIndex; }
+    }
+    this.highestBidderIndex = best;
+    this.currentBid = bestAmt;
+
+    if (this.highestBidderIndex < 0 || this.currentBid <= 0) {
       this.toRoom('redeal_message', { message: '所有人未叫地主，重新发牌' });
-      setTimeout(() => this.redeal(), 1500);
+      setTimeout(() => { if (this.state === 'BIDDING') this.redeal(); }, 1500);
       return;
     }
 
@@ -295,6 +304,7 @@ class Room {
 
   determineLandlord() {
     const landlord = this.players[this.highestBidderIndex];
+    if (!landlord) return; // safety check
     landlord.isLandlord = true;
 
     // Give bonus cards to landlord

@@ -36,6 +36,10 @@
 - 需求：重新部署一台 nginx，使用 lwt 用户，不影响系统 nginx
 - 处理：为 lwt 用户部署独立 nginx 实例（端口8080），系统 nginx 仅代理 /ddz/→:8080
 
+## 2026-05-19 10:45
+- 需求：系统全局测试，实际多人联机+游戏规则运行测试
+- 处理：46/46测试通过。修复finishBidding重新计算highestBidder防止查空；startBidding防重复调用；determineLandlord空安全；3局完整对战验证积分归零
+
 ## 2026-05-19 10:30
 - 需求：系统全局自测，修复发现的问题
 - 处理：fix finishBidding异步延迟导致状态未及时切换(新增BIDDING_DONE中间态防止重复叫分)；19/20集成测试通过
