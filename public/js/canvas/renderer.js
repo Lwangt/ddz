@@ -309,7 +309,7 @@ const GameRenderer = (() => {
     }
   }
 
-  // ── Opponents: avatar circles + cards ────────────────────
+  // ── Opponents: character illustrations + cards ──────────
 
   function drawOpponents() {
     const s = gameState;
@@ -321,83 +321,36 @@ const GameRenderer = (() => {
     }
   }
 
-  function drawPlayerAvatar(player, cx, cy, radius, sc) {
+  // Draw a full character illustration with correct aspect ratio
+  function drawCharacterIllustration(player, x, y, maxW, maxH, sc) {
+    const img = avatarCache[player.avatar];
+    if (!img || !img.complete || img.naturalWidth <= 0) return;
+
     const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
+    const imgRatio = img.naturalWidth / img.naturalHeight;
 
-    // Outer glow ring
-    if (isActive) {
-      const pulse = 0.5 + 0.3 * Math.sin(Date.now() / 350);
-      ctx.shadowColor = `rgba(255,215,0,${pulse})`;
-      ctx.shadowBlur = 14 * sc;
-      ctx.strokeStyle = `rgba(255,200,50,${pulse})`;
-      ctx.lineWidth = 2.5 * sc;
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius + 4 * sc, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.shadowColor = 'transparent';
-    }
-
-    // Clip to circle for avatar image
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.clip();
-
-    // Draw avatar image or fallback circle
-    const avatarId = player.avatar;
-    const img = avatarCache[avatarId];
-    if (img && img.complete && img.naturalWidth > 0) {
-      // Draw image filling the circle
-      const imgSize = radius * 2;
-      ctx.drawImage(img, cx - radius, cy - radius, imgSize, imgSize);
+    // Calculate size fitting within bounds, preserving aspect ratio
+    let drawW, drawH;
+    if (maxW / maxH > imgRatio) {
+      drawH = maxH;
+      drawW = maxH * imgRatio;
     } else {
-      // Fallback: gradient circle with initial
-      const avatarGrad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
-      if (player.isLandlord) {
-        avatarGrad.addColorStop(0, '#ffd54f');
-        avatarGrad.addColorStop(1, '#e6a800');
-      } else {
-        avatarGrad.addColorStop(0, '#5d4037');
-        avatarGrad.addColorStop(1, '#3e2723');
-      }
-      ctx.fillStyle = avatarGrad;
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#fff';
-      ctx.font = `bold ${radius * 1.2}px "Microsoft YaHei", sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(player.name.charAt(0), cx, cy + 1 * sc);
-      ctx.textAlign = 'start';
-      ctx.textBaseline = 'alphabetic';
+      drawW = maxW;
+      drawH = maxW / imgRatio;
     }
-    ctx.restore();
 
-    // Border ring
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-    ctx.lineWidth = 1.2 * sc;
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.stroke();
+    const cx = x + (maxW - drawW) / 2;
+    const cy = y + (maxH - drawH) / 2;
 
-    // Gold ring for landlord
-    if (player.isLandlord) {
-      ctx.strokeStyle = 'rgba(255,200,50,0.6)';
-      ctx.lineWidth = 2 * sc;
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius + 2 * sc, 0, Math.PI * 2);
-      ctx.stroke();
-      // Crown icon above
-      ctx.font = `${radius * 0.7}px "Microsoft YaHei", sans-serif`;
-      ctx.fillStyle = '#ffd700';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('👑', cx, cy - radius - 6 * sc);
-      ctx.textAlign = 'start';
-      ctx.textBaseline = 'alphabetic';
+    // Active glow behind the character
+    if (isActive) {
+      const pulse = 0.3 + 0.2 * Math.sin(Date.now() / 400);
+      ctx.shadowColor = `rgba(255,215,0,${pulse})`;
+      ctx.shadowBlur = 20 * sc;
     }
+
+    ctx.drawImage(img, cx, cy, drawW, drawH);
+    ctx.shadowColor = 'transparent';
   }
 
   function drawTopOpponent(player) {
@@ -406,23 +359,34 @@ const GameRenderer = (() => {
     const positions = Layout.getOpponentHPositions(player.cardCount);
     const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
 
-    // Avatar
-    const avatarR = 16 * sc;
-    const avatarX = area.x + area.w / 2;
-    const avatarY = area.y - avatarR - 10 * sc;
-    drawPlayerAvatar(player, avatarX, avatarY, avatarR, sc);
+    // Character illustration above the card area
+    const charW = 78 * sc;
+    const charH = 100 * sc;
+    const charX = area.x + area.w / 2 - charW / 2;
+    const charY = area.y - charH - 6 * sc;
+    drawCharacterIllustration(player, charX, charY, charW, charH, sc);
 
-    // Name under avatar
+    // Name and status
+    const labelY = charY + charH + 2 * sc;
+    let nameStr = player.name;
+    if (player.isLandlord) nameStr = '👑 ' + nameStr;
+    if (!player.isConnected) nameStr += ' ⊘';
+
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.font = `bold ${13 * sc}px "Microsoft YaHei", sans-serif`;
+    if (isActive) {
+      ctx.shadowColor = 'rgba(255,215,0,0.7)';
+      ctx.shadowBlur = 8 * sc;
+    }
     ctx.fillStyle = isActive ? '#ffd700' : '#d0c8b0';
-    ctx.fillText(player.name, avatarX, avatarY + avatarR + 4 * sc);
+    ctx.fillText(nameStr, area.x + area.w / 2, labelY);
+    ctx.shadowColor = 'transparent';
 
     // Card count
     ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fillText(`${player.cardCount}张`, avatarX, avatarY + avatarR + 20 * sc);
+    ctx.fillText(`${player.cardCount}张`, area.x + area.w / 2, labelY + 17 * sc);
     ctx.textAlign = 'start';
 
     // Card backs
@@ -437,23 +401,32 @@ const GameRenderer = (() => {
     const positions = Layout.getOpponentVPositions(player.cardCount);
     const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
 
-    // Avatar — positioned to the right of the card area
-    const avatarR = 14 * sc;
-    const avatarX = area.x + area.w + avatarR + 8 * sc;
-    const avatarY = area.y + area.h / 2;
-    drawPlayerAvatar(player, avatarX, avatarY, avatarR, sc);
+    // Character illustration to the left of cards
+    const charW = 64 * sc;
+    const charH = 82 * sc;
+    const charX = area.x - charW - 4 * sc;
+    const charY = area.y + area.h / 2 - charH / 2;
+    drawCharacterIllustration(player, charX, charY, charW, charH, sc);
 
-    // Name
+    // Name and card count
+    const labelY = charY + charH + 2 * sc;
+    let nameStr = player.name;
+    if (player.isLandlord) nameStr = '👑 ' + nameStr;
+
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.font = `bold ${12 * sc}px "Microsoft YaHei", sans-serif`;
+    if (isActive) {
+      ctx.shadowColor = 'rgba(255,215,0,0.7)';
+      ctx.shadowBlur = 8 * sc;
+    }
     ctx.fillStyle = isActive ? '#ffd700' : '#d0c8b0';
-    ctx.fillText(player.name, avatarX, avatarY + avatarR + 4 * sc);
+    ctx.fillText(nameStr, charX + charW / 2, labelY);
+    ctx.shadowColor = 'transparent';
 
-    // Card count
     ctx.font = `${10 * sc}px "Microsoft YaHei", sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fillText(`${player.cardCount}张`, avatarX, avatarY + avatarR + 18 * sc);
+    ctx.fillText(`${player.cardCount}张`, charX + charW / 2, labelY + 16 * sc);
     ctx.textAlign = 'start';
 
     // Card backs
@@ -656,11 +629,33 @@ const GameRenderer = (() => {
     const sc = Layout.scale();
     const p0 = Layout.p0Area();
 
-    // Card count
+    // Self player character illustration
+    const self = s.players.find(p => p.seatIndex === s.mySeat);
+    if (self) {
+      const charW = 64 * sc;
+      const charH = 82 * sc;
+      const charX = p0.x - charW - 2 * sc;
+      const charY = p0.y + p0.h / 2 - charH / 2;
+      drawCharacterIllustration(self, charX, charY, charW, charH, sc);
+
+      // Name under character
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.font = `bold ${12 * sc}px "Microsoft YaHei", sans-serif`;
+      ctx.fillStyle = '#ffd700';
+      ctx.fillText(self.name, charX + charW / 2, charY + charH + 2 * sc);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.font = `${10 * sc}px "Microsoft YaHei", sans-serif`;
+      ctx.fillText(`${s.hand.length}张`, charX + charW / 2, charY + charH + 18 * sc);
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    // Card count above hand
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
     ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
     ctx.textAlign = 'center';
-    ctx.fillText(`${s.hand.length}张`, p0.x + p0.w / 2, p0.y - 2 * sc);
+    ctx.fillText(`手牌 ${s.hand.length}张`, p0.x + p0.w / 2, p0.y - 2 * sc);
     ctx.textAlign = 'start';
 
     if (s.selectedCards && s.selectedCards.size > 0) {

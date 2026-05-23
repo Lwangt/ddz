@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node deploy.js)",
+      "Bash(node full_test.js)",
+      "Bash(git push *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(node -e *)",
+      "Bash(ssh lwt@47.112.7.97 *)",
+      "Bash(scp *)",
+      "Bash(curl *)"
+    ]
+  }
+}
