@@ -441,6 +441,10 @@ class Room {
 
     // Apply play
     player.removeCards(cardIds);
+    // Send private hand update to keep client in sync
+    if (!player.isBot) {
+      this.toPlayer(player.id, 'your_hand_update', { hand: player.toPrivateJSON().hand });
+    }
     // Spring: if landlord plays and farmers never played, spring is still alive
     // Counter-spring: if farmers win and landlord only played first round
     if (!player.isLandlord) this.springBroken = true;

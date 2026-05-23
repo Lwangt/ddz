@@ -43,7 +43,7 @@
     return id % 13;
   }
 
-  function isMobile() { return Layout.isMobile(); }
+  function isMobile() { return false; }
 
   function showToast(text, duration) {
     state._toast = {
@@ -211,6 +211,7 @@
     if (data.seatIndex === state.mySeat) {
       state.myTurn = false;
       state.selectedCards = new Set();
+      state._prePlayHand = null; // play confirmed, clear snapshot
     }
 
     clearTurnTimer();
@@ -300,6 +301,11 @@
 
   function onError(data) {
     showToast(data.message || '操作失败', 2000);
+    // Restore hand from pre-play snapshot if play was rejected
+    if (state._prePlayHand && data.message && data.message.includes('牌')) {
+      state.hand = state._prePlayHand;
+      state._prePlayHand = null;
+    }
   }
 
   function onPlayerDisconnected(data) {
@@ -376,6 +382,9 @@
 
     const indices = Array.from(state.selectedCards).sort((a, b) => a - b);
     const cardIds = indices.map(i => state.hand[i]);
+
+    // Save pre-play hand snapshot for error recovery
+    state._prePlayHand = [...state.hand];
 
     SocketManager.emit('play_cards', { cardIds });
     state.selectedCards = new Set();

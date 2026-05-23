@@ -194,20 +194,36 @@ const Layout = (() => {
 
   // ── Hit testing ──────────────────────────────────────────
 
-  function hitTestHand(mx, my, handSize) {
+  function hitTestHand(mx, my, handSize, selectedSet) {
     const positions = getHandPositions(handSize);
     const expand = 10;
-    // Check from rightmost to leftmost (z-order: right cards on top)
+
+    // Pass 1: find first UNSELECTED card (right to left z-order)
     for (let i = positions.length - 1; i >= 0; i--) {
+      if (selectedSet && selectedSet.has(i)) continue;
       const p = positions[i];
       const isLast = (i === positions.length - 1);
-      // Clickable area: left portion (visible) for all but last; full width for last
       const clickL = p.x;
       const clickR = isLast ? p.x + p.w : p.x + p.w * (1 - HAND_OVERLAP) + expand;
       if (mx >= clickL - expand && mx <= clickR && my >= p.y - expand && my <= p.y + p.h + expand) {
         return i;
       }
     }
+
+    // Pass 2: if no unselected card matched, check SELECTED cards (for deselection)
+    if (selectedSet && selectedSet.size > 0) {
+      for (let i = positions.length - 1; i >= 0; i--) {
+        if (!selectedSet.has(i)) continue;
+        const p = positions[i];
+        const isLast = (i === positions.length - 1);
+        const clickL = p.x;
+        const clickR = isLast ? p.x + p.w : p.x + p.w * (1 - HAND_OVERLAP) + expand;
+        if (mx >= clickL - expand && mx <= clickR && my >= p.y - expand && my <= p.y + p.h + expand) {
+          return i;
+        }
+      }
+    }
+
     return -1;
   }
 

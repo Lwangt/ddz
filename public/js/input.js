@@ -68,7 +68,7 @@ const InputHandler = (() => {
     }
 
     const handSize = gs.hand.length;
-    const cardIdx = Layout.hitTestHand(x, y, handSize);
+    const cardIdx = Layout.hitTestHand(x, y, handSize, gs.selectedCards);
     if (cardIdx >= 0 && controller.onCardClick) {
       controller.onCardClick(cardIdx);
     }
