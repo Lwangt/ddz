@@ -45,7 +45,7 @@
     </div>
   </div>
 
-  <script>fetch('/version.txt?'+Date.now()).then(r=>r.text()).then(t=>{if(t.trim())document.title='斗地主 | '+t.trim()}).catch(()=>{})</script>
+  <script>fetch('version.txt?'+Date.now()).then(r=>r.text()).then(t=>{if(t.trim())document.title='斗地主 | '+t.trim()}).catch(()=>{})</script>
   <script src="socket.io/socket.io.js"></script>
   <script src="js/socket.js"></script>
   <script src="js/canvas/cardDrawer.js"></script>
