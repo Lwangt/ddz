@@ -355,36 +355,38 @@ const GameRenderer = (() => {
 
   function drawTopOpponent(player) {
     const sc = Layout.scale();
+    const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
+    const charZ = Layout.topCharZone();
     const area = Layout.p2Area();
     const positions = Layout.getOpponentHPositions(player.cardCount);
-    const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
-    const charZone = Layout.topCharZone();
 
     // Character illustration
-    drawCharacterIllustration(player, charZone.x, charZone.y, charZone.w, charZone.h, sc);
+    drawCharacterIllustration(player, charZ.x, charZ.y, charZ.w, charZ.h, sc);
 
-    // Name and status below character
-    const labelY = charZone.y + charZone.h + 2 * sc;
+    // Name between character and cards
+    const labelY = charZ.y + charZ.h + (area.y - charZ.y - charZ.h) / 2;
     let nameStr = player.name;
     if (player.isLandlord) nameStr = '👑 ' + nameStr;
     if (!player.isConnected) nameStr += ' ⊘';
 
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
+    ctx.textBaseline = 'middle';
     ctx.font = `bold ${14 * sc}px "Microsoft YaHei", sans-serif`;
     if (isActive) {
       ctx.shadowColor = 'rgba(255,215,0,0.7)';
       ctx.shadowBlur = 8 * sc;
     }
     ctx.fillStyle = isActive ? '#ffd700' : '#d0c8b0';
-    ctx.fillText(nameStr, charZone.x + charZone.w / 2, labelY);
+    ctx.fillText(nameStr, charZ.x + charZ.w / 2, labelY);
     ctx.shadowColor = 'transparent';
 
-    // Card count
+    // Card count above cards
     ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.textBaseline = 'bottom';
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fillText(`${player.cardCount}张`, charZone.x + charZone.w / 2, labelY + 18 * sc);
+    ctx.fillText(`${player.cardCount}张`, area.x + area.w / 2, area.y - 2 * sc);
     ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
 
     // Card backs
     for (const pos of positions) {
@@ -394,36 +396,39 @@ const GameRenderer = (() => {
 
   function drawLeftOpponent(player) {
     const sc = Layout.scale();
+    const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
+    const charZ = Layout.leftCharZone();
     const area = Layout.p1Area();
     const positions = Layout.getOpponentVPositions(player.cardCount);
-    const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
-    const charZone = Layout.leftCharZone();
 
     // Character illustration
-    drawCharacterIllustration(player, charZone.x, charZone.y, charZone.w, charZone.h, sc);
+    drawCharacterIllustration(player, charZ.x, charZ.y, charZ.w, charZ.h, sc);
 
-    // Name and card count below
-    const labelY = charZone.y + charZone.h + 2 * sc;
+    // Name between character and cards
+    const labelY = charZ.y + charZ.h + (area.y - charZ.y - charZ.h) / 2;
     let nameStr = player.name;
     if (player.isLandlord) nameStr = '👑 ' + nameStr;
 
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
+    ctx.textBaseline = 'middle';
     ctx.font = `bold ${13 * sc}px "Microsoft YaHei", sans-serif`;
     if (isActive) {
       ctx.shadowColor = 'rgba(255,215,0,0.7)';
       ctx.shadowBlur = 8 * sc;
     }
     ctx.fillStyle = isActive ? '#ffd700' : '#d0c8b0';
-    ctx.fillText(nameStr, charZone.x + charZone.w / 2, labelY);
+    ctx.fillText(nameStr, charZ.x + charZ.w / 2, labelY);
     ctx.shadowColor = 'transparent';
 
+    // Card count
     ctx.font = `${10 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.textBaseline = 'top';
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fillText(`${player.cardCount}张`, charZone.x + charZone.w / 2, labelY + 16 * sc);
+    ctx.fillText(`${player.cardCount}张`, area.x + area.w / 2, area.y + area.h + 4 * sc);
     ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
 
-    // Card backs
+    // Card backs (rotated)
     for (const pos of positions) {
       ctx.save();
       ctx.translate(pos.x + pos.h / 2, pos.y + pos.w / 2);
@@ -619,22 +624,22 @@ const GameRenderer = (() => {
     const s = gameState;
     if (!s.hand || s.hand.length === 0) return;
 
-    const positions = Layout.getHandPositions(s.hand.length);
     const sc = Layout.scale();
+    const charZ = Layout.selfCharZone();
     const p0 = Layout.p0Area();
-    const charZone = Layout.selfCharZone();
+    const positions = Layout.getHandPositions(s.hand.length);
 
-    // Self player character illustration
+    // Self player character illustration (bottom-left)
     const self = s.players.find(p => p.seatIndex === s.mySeat);
     if (self) {
-      drawCharacterIllustration(self, charZone.x, charZone.y, charZone.w, charZone.h, sc);
+      drawCharacterIllustration(self, charZ.x, charZ.y, charZ.w, charZ.h, sc);
 
-      // Name under character
+      // Name above character
       ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
+      ctx.textBaseline = 'bottom';
       ctx.font = `bold ${13 * sc}px "Microsoft YaHei", sans-serif`;
       ctx.fillStyle = '#ffd700';
-      ctx.fillText(self.name, charZone.x + charZone.w / 2, charZone.y + charZone.h + 2 * sc);
+      ctx.fillText(self.name, charZ.x + charZ.w / 2, charZ.y - 2 * sc);
       ctx.textAlign = 'start';
       ctx.textBaseline = 'alphabetic';
     }

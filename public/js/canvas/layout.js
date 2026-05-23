@@ -18,52 +18,101 @@ const Layout = (() => {
     return { x: 0, y: 0, w, h: 46 * scale };
   }
 
-  // Play area (center)
+  // Play area (center table)
   function playArea() {
     const ib = infoBar();
     const ch = cardH();
-    const margin = 160 * scale; // space for left/right opponents
+    const marginX = 180 * scale; // left/right for character pods
+    const topMargin = 170 * scale; // top for character + name
     return {
-      x: margin,
-      y: ib.y + ib.h + 60 * scale,
-      w: w - margin * 2,
-      h: h - ib.h - ch - 130 * scale - 60 * scale
+      x: marginX,
+      y: ib.y + ib.h + topMargin,
+      w: w - marginX * 2,
+      h: h - ib.h - ch - 130 * scale - topMargin
     };
   }
 
-  // Bottom player (you)
+  // Bottom player (self) — character on left, hand cards on right
   function p0Area() {
     const ch = cardH();
     const btnH = 52 * scale;
+    const charW = 115 * scale;
     return {
-      x: w * 0.03,
+      x: charW + 10 * scale,
       y: h - ch - btnH - 18 * scale,
-      w: w * 0.94,
+      w: w - charW - 16 * scale,
       h: ch + 30 * scale
     };
   }
 
-  // Top opponent
-  function p2Area() {
-    const ib = infoBar();
-    const ch = cardH() * 0.7;
+  // Self character zone: bottom-left
+  function selfCharZone() {
+    const p0 = p0Area();
+    const ch = cardH();
+    const btnH = 52 * scale;
+    const charW = 110 * scale;
+    const charH = 140 * scale;
+    const podBottom = h - btnH - 4 * scale;
     return {
-      x: w * 0.25,
-      y: ib.y + ib.h + 4 * scale,
-      w: w * 0.5,
-      h: ch + 26 * scale
+      x: 6 * scale,
+      y: podBottom - charH,
+      w: charW,
+      h: charH
     };
   }
 
-  // Left opponent
+  // Top opponent pod — character + cards below
+  function p2Area() {
+    const ib = infoBar();
+    const charH = 130 * scale;
+    const ch = cardH() * 0.55;
+    return {
+      x: w * 0.28,
+      y: ib.y + ib.h + charH + 12 * scale,
+      w: w * 0.44,
+      h: ch + 20 * scale
+    };
+  }
+
+  // Top opponent character zone: below info bar, above cards
+  function topCharZone() {
+    const ib = infoBar();
+    const p2 = p2Area();
+    const charW = 100 * scale;
+    const charH = 130 * scale;
+    return {
+      x: w / 2 - charW / 2,
+      y: ib.y + ib.h + 4 * scale,
+      w: charW,
+      h: Math.min(charH, p2.y - ib.y - ib.h - 8 * scale)
+    };
+  }
+
+  // Left opponent pod — character above, rotated cards below
   function p1Area() {
     const cw = cardW(), ch = cardH();
     const pa = playArea();
+    const charH = 110 * scale;
+    const cardAreaH = ch * 0.55 * 4; // vertical cards stacked
+    const totalH = charH + 20 * scale + cardAreaH;
     return {
-      x: 8 * scale,
-      y: pa.y + 20 * scale,
-      w: ch * 0.6 + 8 * scale,
-      h: pa.h * 0.7
+      x: 4 * scale,
+      y: pa.y + pa.h / 2 - totalH / 2,
+      w: Math.max(ch * 0.55, 55 * scale),
+      h: cardAreaH
+    };
+  }
+
+  // Left opponent character zone: above the rotated cards
+  function leftCharZone() {
+    const p1 = p1Area();
+    const charW = 85 * scale;
+    const charH = 110 * scale;
+    return {
+      x: 4 * scale,
+      y: p1.y - charH - 8 * scale,
+      w: Math.min(charW, 100 * scale),
+      h: charH
     };
   }
 
@@ -192,49 +241,6 @@ const Layout = (() => {
     return topActionZone();
   }
 
-  // ── Character illustration zones ─────────────────────────
-
-  // Top opponent: between info bar and play area, centered
-  function topCharZone() {
-    const ib = infoBar();
-    const pa = playArea();
-    const gap = pa.y - (ib.y + ib.h);
-    const zoneH = Math.min(gap - 6 * scale, 150 * scale);
-    const zoneW = 120 * scale;
-    return {
-      x: w / 2 - zoneW / 2,
-      y: ib.y + ib.h + (gap - zoneH) / 2,
-      w: zoneW,
-      h: zoneH,
-    };
-  }
-
-  // Left opponent: left margin area
-  function leftCharZone() {
-    const pa = playArea();
-    const margin = pa.x;
-    const zoneW = Math.min(margin - 12 * scale, 120 * scale);
-    const zoneH = 160 * scale;
-    return {
-      x: 6 * scale,
-      y: pa.y + pa.h / 2 - zoneH / 2,
-      w: zoneW,
-      h: Math.min(zoneH, pa.h - 10 * scale),
-    };
-  }
-
-  // Self player: bottom-left, left of hand area
-  function selfCharZone() {
-    const p0 = p0Area();
-    const zoneW = 110 * scale;
-    const zoneH = 145 * scale;
-    return {
-      x: 6 * scale,
-      y: p0.y + p0.h / 2 - zoneH / 2,
-      w: Math.min(zoneW, p0.x - 8 * scale),
-      h: Math.min(zoneH, p0.h + 20 * scale),
-    };
-  }
 
   // ── Hit testing ──────────────────────────────────────────
 
