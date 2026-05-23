@@ -13,6 +13,7 @@ class Player {
     this.score = 0;
     this.bidAmount = 0;
     this.readyForNext = false;
+    this.avatar = null;          // assigned randomly when game starts
     this.botStrategy = null;     // reference to BotStrategy instance
   }
 
@@ -56,6 +57,7 @@ class Player {
       isLandlord: this.isLandlord,
       isConnected: this.isConnected,
       isBot: this.isBot,
+      avatar: this.avatar,
       cardCount: this.hand.length,
       bidAmount: this.bidAmount,
       score: this.score,

@@ -3,6 +3,17 @@ const GameRenderer = (() => {
   let ctx = null;
   let gameState = null;
 
+  // Avatar image cache
+  const avatarCache = {};
+  function preloadAvatars() {
+    for (let i = 1; i <= 5; i++) {
+      const img = new Image();
+      img.src = `image/role/角色${i}.png`;
+      avatarCache[i] = img;
+    }
+  }
+  preloadAvatars();
+
   const PATTERN_LABELS = {
     'rocket': '🚀 火箭', 'bomb': '💣 炸弹', 'single': '单张', 'pair': '对子',
     'triple': '三条', 'triple_plus_one': '三带一', 'triple_plus_two': '三带二',
@@ -326,37 +337,66 @@ const GameRenderer = (() => {
       ctx.shadowColor = 'transparent';
     }
 
-    // Avatar circle background
-    const avatarGrad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
-    if (player.isLandlord) {
-      avatarGrad.addColorStop(0, '#ffd54f');
-      avatarGrad.addColorStop(1, '#e6a800');
-    } else {
-      avatarGrad.addColorStop(0, '#5d4037');
-      avatarGrad.addColorStop(1, '#3e2723');
-    }
-    ctx.fillStyle = avatarGrad;
+    // Clip to circle for avatar image
+    ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.clip();
 
-    // Border
+    // Draw avatar image or fallback circle
+    const avatarId = player.avatar;
+    const img = avatarCache[avatarId];
+    if (img && img.complete && img.naturalWidth > 0) {
+      // Draw image filling the circle
+      const imgSize = radius * 2;
+      ctx.drawImage(img, cx - radius, cy - radius, imgSize, imgSize);
+    } else {
+      // Fallback: gradient circle with initial
+      const avatarGrad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
+      if (player.isLandlord) {
+        avatarGrad.addColorStop(0, '#ffd54f');
+        avatarGrad.addColorStop(1, '#e6a800');
+      } else {
+        avatarGrad.addColorStop(0, '#5d4037');
+        avatarGrad.addColorStop(1, '#3e2723');
+      }
+      ctx.fillStyle = avatarGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${radius * 1.2}px "Microsoft YaHei", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(player.name.charAt(0), cx, cy + 1 * sc);
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
+    }
+    ctx.restore();
+
+    // Border ring
     ctx.strokeStyle = 'rgba(255,255,255,0.2)';
     ctx.lineWidth = 1.2 * sc;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Initial letter
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${radius * 1.2}px "Microsoft YaHei", sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const initial = player.name.charAt(0);
-    ctx.fillText(initial, cx, cy + 1 * sc);
-
-    // Crown for landlord
+    // Gold ring for landlord
     if (player.isLandlord) {
-      ctx.font = `${radius * 0.8}px "Microsoft YaHei", sans-serif`;
-      ctx.fillText('👑', cx, cy - radius - 8 * sc);
+      ctx.strokeStyle = 'rgba(255,200,50,0.6)';
+      ctx.lineWidth = 2 * sc;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius + 2 * sc, 0, Math.PI * 2);
+      ctx.stroke();
+      // Crown icon above
+      ctx.font = `${radius * 0.7}px "Microsoft YaHei", sans-serif`;
+      ctx.fillStyle = '#ffd700';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('👑', cx, cy - radius - 6 * sc);
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
     }
   }
 

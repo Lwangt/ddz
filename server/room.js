@@ -131,6 +131,25 @@ class Room {
 
     // Reset per-game state
     this.players.forEach(p => p.reset());
+    // Assign random avatars to players who don't have one yet
+    const avatarCount = 5; // role images: 角色1.png through 角色5.png
+    const availableAvatars = [];
+    for (let i = 1; i <= avatarCount; i++) availableAvatars.push(i);
+    // Keep existing avatars, assign random unused ones to players without
+    const usedAvatars = new Set(this.players.filter(p => p.avatar).map(p => p.avatar));
+    const freeAvatars = availableAvatars.filter(a => !usedAvatars.has(a));
+    for (const p of this.players) {
+      if (!p.avatar) {
+        if (freeAvatars.length > 0) {
+          const idx = Math.floor(Math.random() * freeAvatars.length);
+          p.avatar = freeAvatars.splice(idx, 1)[0];
+        } else {
+          // All avatars taken, assign random from full set anyway
+          p.avatar = availableAvatars[Math.floor(Math.random() * availableAvatars.length)];
+        }
+      }
+    }
+
     // Re-create bot strategies with fresh references
     for (const p of this.players) {
       if (p.isBot) p.botStrategy = new BotStrategy(p);
