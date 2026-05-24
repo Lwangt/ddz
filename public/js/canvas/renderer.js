@@ -62,7 +62,6 @@ const GameRenderer = (() => {
     } else {
       drawBackground(W, H);
     }
-    drawTableOval(W, H);
     drawGhostTurnIndicator();
     drawInfoBar();
     drawScoreBoard();
@@ -694,13 +693,12 @@ const GameRenderer = (() => {
     }
   }
 
-  // ── Buttons: premium gold-accent ─────────────────────────
+  // ── Buttons: premium metallic style ─────────────────────
 
   function drawButtons() {
     const s = gameState;
     const area = Layout.buttonArea();
     const sc = Layout.scale();
-
     const btns = getButtonLayout();
     s._buttonLayout = btns;
 
@@ -708,61 +706,89 @@ const GameRenderer = (() => {
       const r = btn.h / 2;
       ctx.save();
 
+      // Outer glow for enabled buttons
       if (!btn.disabled) {
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = 8 * sc;
-        ctx.shadowOffsetY = 3 * sc;
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 10 * sc;
+        ctx.shadowOffsetY = 4 * sc;
       }
 
+      // Base fill with metallic gradient
       const grad = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.h);
       if (btn.disabled) {
-        grad.addColorStop(0, 'rgba(255,255,255,0.04)');
-        grad.addColorStop(1, 'rgba(255,255,255,0.02)');
+        grad.addColorStop(0, '#2a2a2a');
+        grad.addColorStop(0.5, '#1f1f1f');
+        grad.addColorStop(1, '#151515');
       } else if (btn.type === 'primary') {
-        grad.addColorStop(0, '#ffb74d');
-        grad.addColorStop(0.4, '#f59e2e');
-        grad.addColorStop(1, '#e68900');
+        grad.addColorStop(0, '#ffcc80');
+        grad.addColorStop(0.2, '#ffb74d');
+        grad.addColorStop(0.5, '#f59e2e');
+        grad.addColorStop(0.8, '#e68900');
+        grad.addColorStop(1, '#cc7700');
       } else if (btn.type === 'danger') {
-        grad.addColorStop(0, '#ef5350');
-        grad.addColorStop(1, '#b71c1c');
+        grad.addColorStop(0, '#ff8a80');
+        grad.addColorStop(0.3, '#ef5350');
+        grad.addColorStop(0.7, '#d32f2f');
+        grad.addColorStop(1, '#9a0007');
       } else if (btn.type === 'bid') {
-        grad.addColorStop(0, '#5c9ce0');
-        grad.addColorStop(1, '#1a6dc4');
+        grad.addColorStop(0, '#90caf9');
+        grad.addColorStop(0.3, '#64b5f6');
+        grad.addColorStop(0.7, '#1e88e5');
+        grad.addColorStop(1, '#0d47a1');
       } else {
-        grad.addColorStop(0, 'rgba(255,255,255,0.14)');
-        grad.addColorStop(1, 'rgba(255,255,255,0.06)');
+        grad.addColorStop(0, '#5a5a5a');
+        grad.addColorStop(0.3, '#424242');
+        grad.addColorStop(0.7, '#333333');
+        grad.addColorStop(1, '#1a1a1a');
       }
       ctx.fillStyle = grad;
       fillRoundRect(btn.x, btn.y, btn.w, btn.h, r);
       ctx.shadowColor = 'transparent';
 
-      // Top highlight
       if (!btn.disabled) {
+        // Top bright highlight (glossy reflection)
         ctx.save();
-        roundRectPath(btn.x, btn.y, btn.w, r, r);
+        roundRectPath(btn.x, btn.y, btn.w, r * 1.6, r);
         ctx.clip();
-        const hl = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + r);
-        hl.addColorStop(0, 'rgba(255,255,255,0.3)');
-        hl.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = hl;
-        ctx.fillRect(btn.x, btn.y, btn.w, r);
+        const hlGrad = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + r * 1.6);
+        hlGrad.addColorStop(0, 'rgba(255,255,255,0.45)');
+        hlGrad.addColorStop(0.5, 'rgba(255,255,255,0.15)');
+        hlGrad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = hlGrad;
+        ctx.fillRect(btn.x, btn.y, btn.w, r * 1.6);
         ctx.restore();
+
+        // Inner bright edge (top rim light)
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 1.2 * sc;
+        roundRectPath(btn.x + 1.5 * sc, btn.y + 1.5 * sc, btn.w - 3 * sc, btn.h - 3 * sc, r - 1 * sc);
+        ctx.stroke();
+
+        // Bottom shadow edge
+        ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+        ctx.lineWidth = 1 * sc;
+        ctx.beginPath();
+        ctx.moveTo(btn.x + r, btn.y + btn.h - 1.5 * sc);
+        ctx.lineTo(btn.x + btn.w - r, btn.y + btn.h - 1.5 * sc);
+        ctx.stroke();
       }
 
-      // Border
-      ctx.strokeStyle = btn.disabled ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.18)';
+      // Outer border
+      ctx.strokeStyle = btn.disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)';
       ctx.lineWidth = 1 * sc;
       strokeRoundRect(btn.x, btn.y, btn.w, btn.h, r);
 
-      // Text
-      ctx.fillStyle = btn.disabled ? 'rgba(255,255,255,0.18)' : '#fff';
+      // Text with depth
       ctx.font = `bold ${15 * sc}px "Microsoft YaHei", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       if (!btn.disabled) {
-        ctx.shadowColor = 'rgba(0,0,0,0.35)';
+        // Text shadow for depth
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
         ctx.shadowBlur = 2 * sc;
+        ctx.shadowOffsetY = 1.5 * sc;
       }
+      ctx.fillStyle = btn.disabled ? 'rgba(255,255,255,0.15)' : '#fff';
       ctx.fillText(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
       ctx.shadowColor = 'transparent';
       ctx.textAlign = 'start';
@@ -814,54 +840,110 @@ const GameRenderer = (() => {
     return btns;
   }
 
-  // ── Timer bar ────────────────────────────────────────────
+  // ── Timer bar with particles and glow ────────────────────
+
+  let timerParticles = [];
+  let lastTimerParticleTime = 0;
 
   function drawTimerBar() {
     const s = gameState;
-    if (!s.turnTimeLeft || s.turnTimeLeft <= 0 || !s.myTurn) return;
+    if (!s.turnTimeLeft || s.turnTimeLeft <= 0 || !s.myTurn) {
+      timerParticles = [];
+      return;
+    }
 
     const area = Layout.timerArea();
     const progress = s.turnTimeLeft / s.turnTimeTotal;
     const sc = Layout.scale();
-    const trackH = 9 * sc;
+    const trackH = 10 * sc;
     const trackY = area.y + area.h / 2 - trackH / 2;
     const trackR = trackH / 2;
+    const now = Date.now();
 
-    // Track
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    // Track background with subtle glow
+    ctx.shadowColor = 'rgba(255,255,255,0.08)';
+    ctx.shadowBlur = 6 * sc;
+    ctx.fillStyle = 'rgba(0,0,0,0.75)';
     fillRoundRect(area.x, trackY, area.w, trackH, trackR);
+    ctx.shadowColor = 'transparent';
 
     if (progress <= 0) return;
 
-    let color;
-    if (progress > 0.6) color = '#66BB6A';
-    else if (progress > 0.25) color = '#FFA726';
-    else color = '#EF5350';
+    let color, glow;
+    if (progress > 0.6) { color = '#66BB6A'; glow = 'rgba(102,187,106,0.6)'; }
+    else if (progress > 0.25) { color = '#FFA726'; glow = 'rgba(255,167,38,0.6)'; }
+    else { color = '#EF5350'; glow = 'rgba(239,83,80,0.8)'; }
 
     const fillW = area.w * progress;
     if (fillW > trackR * 2) {
+      // Glow behind the fill
+      ctx.shadowColor = glow;
+      ctx.shadowBlur = 12 * sc;
+
       const fillGrad = ctx.createLinearGradient(area.x, 0, area.x + fillW, 0);
       fillGrad.addColorStop(0, color);
+      fillGrad.addColorStop(0.5, color);
       fillGrad.addColorStop(1, progress < 0.25 ? '#ff1744' : color);
       ctx.fillStyle = fillGrad;
       fillRoundRect(area.x, trackY, fillW, trackH, trackR);
+      ctx.shadowColor = 'transparent';
+
+      // Bright edge at the leading tip
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      const tipW = Math.min(4 * sc, fillW * 0.1);
+      fillRoundRect(area.x + fillW - tipW, trackY + 1 * sc, tipW, trackH - 2 * sc, trackR - 1 * sc);
     }
 
+    // Pulsing overlay when low
     if (progress < 0.25) {
-      const pulse = 0.15 + 0.2 * Math.sin(Date.now() / 140);
+      const pulse = 0.15 + 0.25 * Math.sin(Date.now() / 130);
       ctx.fillStyle = `rgba(255,23,68,${pulse})`;
       fillRoundRect(area.x, trackY, fillW, trackH, trackR);
     }
 
+    // ── Timer particles ───────────────────────────────────
+    if (progress < 0.25 && now - lastTimerParticleTime > 60) {
+      lastTimerParticleTime = now;
+      timerParticles.push({
+        x: area.x + fillW,
+        y: trackY + trackH / 2,
+        vx: 2 * sc + Math.random() * 4 * sc,
+        vy: (Math.random() - 0.5) * 3 * sc,
+        life: 1,
+        size: 1.5 * sc + Math.random() * 3 * sc,
+        color: ['#ff5252', '#ff8a80', '#ffd740', '#fff'][Math.floor(Math.random() * 4)]
+      });
+    }
+
+    // Draw and update existing particles
+    for (let i = timerParticles.length - 1; i >= 0; i--) {
+      const p = timerParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.04;
+      if (p.life <= 0) { timerParticles.splice(i, 1); continue; }
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // Countdown text with glow
     const secs = Math.ceil(s.turnTimeLeft);
-    ctx.fillStyle = '#fff';
-    const fontSize = progress < 0.25 ? 19 * sc : 15 * sc;
+    const fontSize = progress < 0.25 ? 22 * sc : 16 * sc;
     ctx.font = `bold ${fontSize}px "Microsoft YaHei", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.shadowColor = 'rgba(0,0,0,0.7)';
-    ctx.shadowBlur = 4 * sc;
-    ctx.fillText(progress < 0.25 ? `⏰ ${secs}s` : `${secs}s`, area.x + area.w / 2, trackY - 6 * sc);
+
+    // Text glow
+    if (progress < 0.25) {
+      ctx.shadowColor = 'rgba(255,50,50,0.8)';
+      ctx.shadowBlur = 14 * sc;
+    }
+    ctx.fillStyle = progress < 0.25 ? '#ff5252' : '#fff';
+    ctx.fillText(progress < 0.25 ? `⏰ ${secs}s` : `${secs}s`, area.x + area.w / 2, trackY - 8 * sc);
     ctx.shadowColor = 'transparent';
     ctx.textAlign = 'start';
     ctx.textBaseline = 'alphabetic';
