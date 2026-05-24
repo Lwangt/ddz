@@ -10,7 +10,11 @@ const GameRenderer = (() => {
   const imageLoadFailed = {};
 
   // On-screen debug log (visible on mobile without devtools)
-  const debugMode = new URLSearchParams(window.location.search).get('debug') === '1';
+  // Persists via sessionStorage so it survives page navigation
+  if (new URLSearchParams(window.location.search).get('debug') === '1') {
+    sessionStorage.setItem('ddz_debug', '1');
+  }
+  const debugMode = sessionStorage.getItem('ddz_debug') === '1';
   const debugLines = [];
   function debugLog(msg) {
     console.log(msg);

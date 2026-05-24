@@ -246,6 +246,11 @@
     roomCodeInput.value = roomParam.toUpperCase();
   }
 
+  // Persist debug mode from URL
+  if (params.get('debug') === '1') {
+    sessionStorage.setItem('ddz_debug', '1');
+  }
+
   // ── Test mode toggle ─────────────────────────────────────
 
   const testToggle = document.getElementById('testModeToggle');
