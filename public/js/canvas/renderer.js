@@ -9,68 +9,91 @@ const GameRenderer = (() => {
   const imageLoadStarted = {};
   const imageLoadFailed = {};
 
+  // On-screen debug log (visible on mobile without devtools)
+  const debugMode = new URLSearchParams(window.location.search).get('debug') === '1';
+  const debugLines = [];
+  function debugLog(msg) {
+    console.log(msg);
+    if (debugMode) {
+      debugLines.push(msg);
+      if (debugLines.length > 20) debugLines.shift();
+    }
+  }
+
   function getBase() {
     const m = window.location.pathname.match(/^(\/[^/]+\/)/);
     return (m && m[1] !== '/') ? m[1] : '/';
   }
 
   // Load image via fetch + blob URL; fallback to direct Image() on failure
-  async function loadImage(url) {
-    if (imageLoadFailed[url]) return null;
-    if (imageLoadStarted[url]) return null;
+  async function loadImage(url, label) {
+    if (imageLoadFailed[url]) { debugLog(`[SKIP] ${label} (之前失败)`); return null; }
+    if (imageLoadStarted[url]) { debugLog(`[SKIP] ${label} (已在加载)`); return null; }
     imageLoadStarted[url] = true;
+    debugLog(`[加载] ${label}`);
+    debugLog(`      ${url.substring(0, 80)}`);
 
     // Method 1: fetch + blob URL
     try {
       const resp = await fetch(url);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      debugLog(`[OK] ${label} fetch ${resp.status} ${(resp.headers.get('content-length')||'?')}B`);
       const blob = await resp.blob();
       const img = new Image();
       const blobUrl = URL.createObjectURL(blob);
       return new Promise((resolve, reject) => {
-        img.onload = () => { URL.revokeObjectURL(blobUrl); resolve(img); };
-        img.onerror = () => { URL.revokeObjectURL(blobUrl); reject(new Error('decode')); };
+        img.onload = () => {
+          URL.revokeObjectURL(blobUrl);
+          debugLog(`[OK] ${label} 解码成功 ${img.naturalWidth}x${img.naturalHeight}`);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(blobUrl);
+          debugLog(`[失败] ${label} 图片解码失败`);
+          reject(new Error('decode'));
+        };
         img.src = blobUrl;
       });
     } catch (err) {
-      console.warn('[img] fetch failed, trying direct:', url, err.message);
+      debugLog(`[回退] ${label} fetch失败: ${err.message}`);
     }
 
-    // Method 2: direct Image() — works on most browsers
+    // Method 2: direct Image()
     try {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       return new Promise((resolve, reject) => {
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error('direct load failed'));
+        img.onload = () => {
+          debugLog(`[OK] ${label} direct ${img.naturalWidth}x${img.naturalHeight}`);
+          resolve(img);
+        };
+        img.onerror = () => {
+          debugLog(`[失败] ${label} direct失败`);
+          reject(new Error('direct'));
+        };
         img.src = url;
       });
     } catch (err2) {
       imageLoadFailed[url] = true;
-      console.warn('[img] all methods failed:', url, err2.message);
+      debugLog(`[失败] ${label} 全部方法失败`);
       return null;
     }
   }
 
   async function preloadImages() {
     const base = window.location.origin + getBase();
-    console.log('[img] base URL:', base);
+    debugLog(`[初始化] 图片服务器: ${base}`);
 
-    // Load role images
     for (let i = 1; i <= 5; i++) {
       const url = base + encodeURI(`image/role/角色${i}.png`);
-      console.log('[img] loading role', i, url);
-      loadImage(url).then(img => {
-        if (img) { avatarCache[i] = img; console.log('[img] role loaded:', i); }
+      loadImage(url, `role${i}`).then(img => {
+        if (img) avatarCache[i] = img;
       });
     }
-
-    // Load bg images
     for (let i = 1; i <= 7; i++) {
       const url = base + `image/bg/bg${i}.png`;
-      console.log('[img] loading bg', i, url);
-      loadImage(url).then(img => {
-        if (img) { bgCache[i] = img; console.log('[img] bg loaded:', i); }
+      loadImage(url, `bg${i}`).then(img => {
+        if (img) bgCache[i] = img;
       });
     }
   }
@@ -131,6 +154,7 @@ const GameRenderer = (() => {
     drawTimerBar();
     drawToast();
     drawEffects();
+    if (debugMode) drawDebugOverlay(W, H);
     ctx.restore();
   }
 
@@ -1099,6 +1123,65 @@ const GameRenderer = (() => {
 
   window.triggerBombEffect = triggerBombFlash;
   window.triggerWinEffect = () => triggerWinParticles(Layout.cssW(), Layout.cssH());
+
+  // ── On-screen debug overlay (mobile dev without devtools) ─
+
+  function drawDebugOverlay(W, H) {
+    const sc = Layout.scale();
+    const panelW = Math.min(W * 0.9, 500);
+    const panelH = Math.min(H * 0.8, 400);
+    const px = (W - panelW) / 2;
+    const py = (H - panelH) / 2;
+
+    // Background
+    ctx.fillStyle = 'rgba(0,0,0,0.92)';
+    const r = 10 * sc;
+    fillRoundRect(px, py, panelW, panelH, r);
+    ctx.strokeStyle = 'rgba(255,200,50,0.5)';
+    ctx.lineWidth = 2 * sc;
+    strokeRoundRect(px, py, panelW, panelH, r);
+
+    // Title
+    ctx.fillStyle = '#ffd700';
+    ctx.font = `bold ${14 * sc}px "Microsoft YaHei", sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('📋 图片加载状态 (debug=1)', px + 14 * sc, py + 10 * sc);
+
+    // Image status summary
+    const loadedBg = Object.keys(bgCache).filter(k => bgCache[k] && bgCache[k].complete && bgCache[k].naturalWidth > 0);
+    const loadedRole = Object.keys(avatarCache).filter(k => avatarCache[k] && avatarCache[k].complete && avatarCache[k].naturalWidth > 0);
+    const failedCount = Object.keys(imageLoadFailed).length;
+    const totalBg = 7, totalRole = 5;
+
+    ctx.fillStyle = '#4caf50';
+    ctx.font = `${11 * sc}px "Microsoft YaHei", sans-serif`;
+    const y0 = py + 32 * sc;
+    ctx.fillText(`✅ 背景图: ${loadedBg.length}/${totalBg}  角色图: ${loadedRole.length}/${totalRole}  失败: ${failedCount}`, px + 14 * sc, y0);
+
+    // Current game state
+    const s = gameState;
+    ctx.fillStyle = '#90caf9';
+    ctx.fillText(`🎮 bg=${s.bg||0}  players=${(s.players||[]).map(p=>p.name+'(a'+p.avatar+')').join(',')}`, px + 14 * sc, y0 + 16 * sc);
+
+    // Debug log lines
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.font = `${9 * sc}px "Courier New", monospace`;
+    const logY0 = y0 + 38 * sc;
+    const lineH = 12 * sc;
+    for (let i = 0; i < debugLines.length; i++) {
+      const txt = debugLines[i];
+      const trimmed = txt.length > 70 ? txt.substring(0, 68) + '..' : txt;
+      if (txt.startsWith('[失败')) ctx.fillStyle = '#ff8a80';
+      else if (txt.startsWith('[OK]')) ctx.fillStyle = '#66BB6A';
+      else if (txt.startsWith('[回退')) ctx.fillStyle = '#FFA726';
+      else ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fillText(trimmed, px + 10 * sc, logY0 + i * lineH);
+    }
+
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
+  }
 
   return { init, draw };
 })();
