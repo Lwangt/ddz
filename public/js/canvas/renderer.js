@@ -3,16 +3,22 @@ const GameRenderer = (() => {
   let ctx = null;
   let gameState = null;
 
-  // Avatar image cache
+  // Image caches
   const avatarCache = {};
-  function preloadAvatars() {
+  const bgCache = {};
+  function preloadImages() {
     for (let i = 1; i <= 5; i++) {
       const img = new Image();
       img.src = `image/role/角色${i}.png`;
       avatarCache[i] = img;
     }
+    for (let i = 1; i <= 2; i++) {
+      const img = new Image();
+      img.src = `image/bg/bg${i}.png`;
+      bgCache[i] = img;
+    }
   }
-  preloadAvatars();
+  preloadImages();
 
   const PATTERN_LABELS = {
     'rocket': '🚀 火箭', 'bomb': '💣 炸弹', 'single': '单张', 'pair': '对子',
@@ -33,7 +39,29 @@ const GameRenderer = (() => {
     ctx.save();
     ctx.fillStyle = '#0d1b0e';
     ctx.fillRect(0, 0, W, H);
-    drawBackground(W, H);
+
+    // Draw background image as bottom layer
+    const bgId = gameState.bg;
+    if (bgId && bgCache[bgId] && bgCache[bgId].complete && bgCache[bgId].naturalWidth > 0) {
+      const bgImg = bgCache[bgId];
+      const bgRatio = bgImg.naturalWidth / bgImg.naturalHeight;
+      const screenRatio = W / H;
+      let dw, dh, dx, dy;
+      if (screenRatio > bgRatio) {
+        dw = W;
+        dh = W / bgRatio;
+        dx = 0;
+        dy = (H - dh) / 2;
+      } else {
+        dh = H;
+        dw = H * bgRatio;
+        dx = (W - dw) / 2;
+        dy = 0;
+      }
+      ctx.drawImage(bgImg, dx, dy, dw, dh);
+    } else {
+      drawBackground(W, H);
+    }
     drawTableOval(W, H);
     drawGhostTurnIndicator();
     drawInfoBar();

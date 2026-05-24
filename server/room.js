@@ -30,6 +30,9 @@ class Room {
     // Deck
     this.bonusCards = [];
 
+    // Background
+    this.currentBg = 0;
+
     // Timers
     this.turnTimer = null;
     this.bidTimer = null;
@@ -127,6 +130,18 @@ class Room {
       if (!humans.every(p => p.isConnected)) return false;
     }
 
+    // Pick a random background different from current one
+    const bgCount = 2; // bg1.png, bg2.png
+    if (bgCount > 1) {
+      let newBg;
+      do {
+        newBg = Math.floor(Math.random() * bgCount) + 1;
+      } while (newBg === this.currentBg);
+      this.currentBg = newBg;
+    } else {
+      this.currentBg = this.currentBg || 1;
+    }
+
     this.state = C.PHASE_DEALING;
 
     // Reset per-game state
@@ -180,6 +195,7 @@ class Room {
         hand: p.toPrivateJSON().hand,
         phase: C.PHASE_DEALING,
         roomCode: this.code,
+        bg: this.currentBg,
       });
     }
 
@@ -743,6 +759,7 @@ class Room {
       passCount: this.passCount,
       multiplier: this.multiplier,
       bonusCards: player && player.isLandlord ? [...this.bonusCards] : [],
+      bg: this.currentBg,
     };
   }
 }

@@ -27,6 +27,7 @@
     playerLastActions: {},
     bidResults: [],
     currentPlayerIndex: -1,
+    bg: 0,
     _buttonLayout: null,
     _toast: null,
   };
@@ -87,6 +88,7 @@
     state.hand = data.hand;
     state.players = data.players;
     state.roomCode = data.roomCode;
+    state.bg = data.bg || 0;
     state.selectedCards = new Set();
     state.lastPlayedCards = [];
     state.lastPattern = null;
@@ -287,6 +289,7 @@
     state.currentPlayerIndex = data.currentPlayerIndex;
     state.myTurn = (data.currentPlayerIndex === state.mySeat && data.state === 'PLAYING');
     state.bonusCards = data.bonusCards || [];
+    state.bg = data.bg || 0;
     state.selectedCards = new Set();
 
     if (state.phase === 'FINISHED') {
