@@ -12,8 +12,9 @@ const GameRenderer = (() => {
       img.src = `image/role/角色${i}.png`;
       avatarCache[i] = img;
     }
-    for (let i = 1; i <= 2; i++) {
+    for (let i = 1; i <= 7; i++) {
       const img = new Image();
+      img.onload = () => { /* will show on next frame since draw() checks .complete */ };
       img.src = `image/bg/bg${i}.png`;
       bgCache[i] = img;
     }

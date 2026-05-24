@@ -131,7 +131,7 @@ class Room {
     }
 
     // Pick a random background different from current one
-    const bgCount = 2; // bg1.png, bg2.png
+    const bgCount = 7; // bg1.png through bg7.png
     if (bgCount > 1) {
       let newBg;
       do {
