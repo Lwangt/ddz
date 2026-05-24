@@ -101,7 +101,8 @@
     showWaiting(false);
     hideGameOver();
     showToast('游戏开始，准备叫地主', 2000);
-    Sound.deal();
+    Sound.gameStart();
+    setTimeout(() => Sound.deal(), 500);
     console.log('[game] Starting. Seat:', state.mySeat, 'Hand:', state.hand.length);
   }
 
@@ -122,7 +123,7 @@
 
   function onBidMade(data) {
     state.currentBid = data.currentBid;
-    Sound.bid();
+    Sound.bid(data.amount);
     // Track bid result for display
     if (!state.bidResults) state.bidResults = [];
     state.bidResults.push({
