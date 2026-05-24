@@ -6,16 +6,26 @@ const GameRenderer = (() => {
   // Image caches
   const avatarCache = {};
   const bgCache = {};
+
+  // Detect base path for absolute URL construction (handles /ddz/ subpath)
+  function getBase() {
+    const m = window.location.pathname.match(/^(\/[^/]+\/)/);
+    return (m && m[1] !== '/') ? m[1] : '/';
+  }
+
   function preloadImages() {
+    const base = getBase();
     for (let i = 1; i <= 5; i++) {
       const img = new Image();
-      img.src = encodeURI(`image/role/角色${i}.png`);
+      img.onerror = () => console.warn('[preload] failed:', img.src);
+      img.src = base + encodeURI(`image/role/角色${i}.png`);
       avatarCache[i] = img;
     }
     for (let i = 1; i <= 7; i++) {
       const img = new Image();
-      img.onload = () => { /* will show on next frame since draw() checks .complete */ };
-      img.src = encodeURI(`image/bg/bg${i}.png`);
+      img.onload = () => console.log('[preload] loaded:', img.src);
+      img.onerror = () => console.warn('[preload] failed:', img.src);
+      img.src = base + `image/bg/bg${i}.png`;
       bgCache[i] = img;
     }
   }
