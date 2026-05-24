@@ -11,6 +11,21 @@
   <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
+  <!-- Preload images via HTML parser (works on all browsers incl. mobile) -->
+  <div style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+    <img src="image/bg/bg1.png" id="pre-bg1" onerror="this.dataset.err='1'">
+    <img src="image/bg/bg2.png" id="pre-bg2" onerror="this.dataset.err='1'">
+    <img src="image/bg/bg3.png" id="pre-bg3" onerror="this.dataset.err='1'">
+    <img src="image/bg/bg4.png" id="pre-bg4" onerror="this.dataset.err='1'">
+    <img src="image/bg/bg5.png" id="pre-bg5" onerror="this.dataset.err='1'">
+    <img src="image/bg/bg6.png" id="pre-bg6" onerror="this.dataset.err='1'">
+    <img src="image/bg/bg7.png" id="pre-bg7" onerror="this.dataset.err='1'">
+    <img src="image/role/角色1.png" id="pre-role1" onerror="this.dataset.err='1'">
+    <img src="image/role/角色2.png" id="pre-role2" onerror="this.dataset.err='1'">
+    <img src="image/role/角色3.png" id="pre-role3" onerror="this.dataset.err='1'">
+    <img src="image/role/角色4.png" id="pre-role4" onerror="this.dataset.err='1'">
+    <img src="image/role/角色5.png" id="pre-role5" onerror="this.dataset.err='1'">
+  </div>
   <canvas id="gameCanvas"></canvas>
 
   <!-- Game over overlay -->

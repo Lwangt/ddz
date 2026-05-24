@@ -3,14 +3,11 @@ const GameRenderer = (() => {
   let ctx = null;
   let gameState = null;
 
-  // Image caches
+  // Image caches — populated from HTML-preloaded <img> tags for maximum compatibility
   const avatarCache = {};
   const bgCache = {};
-  const imageLoadStarted = {};
-  const imageLoadFailed = {};
 
   // On-screen debug log (visible on mobile without devtools)
-  // Persists via sessionStorage so it survives page navigation
   if (new URLSearchParams(window.location.search).get('debug') === '1') {
     sessionStorage.setItem('ddz_debug', '1');
   }
@@ -24,86 +21,51 @@ const GameRenderer = (() => {
     }
   }
 
-  function getBase() {
-    const m = window.location.pathname.match(/^(\/[^/]+\/)/);
-    return (m && m[1] !== '/') ? m[1] : '/';
-  }
-
-  // Load image via fetch + blob URL; fallback to direct Image() on failure
-  async function loadImage(url, label) {
-    if (imageLoadFailed[url]) { debugLog(`[SKIP] ${label} (之前失败)`); return null; }
-    if (imageLoadStarted[url]) { debugLog(`[SKIP] ${label} (已在加载)`); return null; }
-    imageLoadStarted[url] = true;
-    debugLog(`[加载] ${label}`);
-    debugLog(`      ${url.substring(0, 80)}`);
-
-    // Method 1: fetch + blob URL
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      debugLog(`[OK] ${label} fetch ${resp.status} ${(resp.headers.get('content-length')||'?')}B`);
-      const blob = await resp.blob();
-      const img = new Image();
-      const blobUrl = URL.createObjectURL(blob);
-      return new Promise((resolve, reject) => {
-        img.onload = () => {
-          URL.revokeObjectURL(blobUrl);
-          debugLog(`[OK] ${label} 解码成功 ${img.naturalWidth}x${img.naturalHeight}`);
-          resolve(img);
-        };
-        img.onerror = () => {
-          URL.revokeObjectURL(blobUrl);
-          debugLog(`[失败] ${label} 图片解码失败`);
-          reject(new Error('decode'));
-        };
-        img.src = blobUrl;
-      });
-    } catch (err) {
-      debugLog(`[回退] ${label} fetch失败: ${err.message}`);
-    }
-
-    // Method 2: direct Image()
-    try {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      return new Promise((resolve, reject) => {
-        img.onload = () => {
-          debugLog(`[OK] ${label} direct ${img.naturalWidth}x${img.naturalHeight}`);
-          resolve(img);
-        };
-        img.onerror = () => {
-          debugLog(`[失败] ${label} direct失败`);
-          reject(new Error('direct'));
-        };
-        img.src = url;
-      });
-    } catch (err2) {
-      imageLoadFailed[url] = true;
-      debugLog(`[失败] ${label} 全部方法失败`);
-      return null;
-    }
-  }
-
-  async function preloadImages() {
-    // Force port 80 for images — mobile networks block non-standard ports like 8081
-    const origin80 = window.location.protocol + '//' + window.location.hostname;
-    const base = origin80 + getBase();
-    debugLog(`[初始化] 图片服务器: ${base} (强制80端口)`);
-
-    for (let i = 1; i <= 5; i++) {
-      const url = base + encodeURI(`image/role/角色${i}.png`);
-      loadImage(url, `role${i}`).then(img => {
-        if (img) avatarCache[i] = img;
-      });
-    }
+  function initImageCache() {
+    // Background images from HTML preload tags
     for (let i = 1; i <= 7; i++) {
-      const url = base + `image/bg/bg${i}.png`;
-      loadImage(url, `bg${i}`).then(img => {
-        if (img) bgCache[i] = img;
-      });
+      const el = document.getElementById('pre-bg' + i);
+      if (el) {
+        bgCache[i] = el;
+        if (el.complete && el.naturalWidth > 0) {
+          debugLog(`[OK] bg${i} ${el.naturalWidth}x${el.naturalHeight} (HTML预加载)`);
+        } else if (el.dataset.err === '1') {
+          debugLog(`[失败] bg${i} HTML预加载失败`);
+        } else {
+          debugLog(`[等待] bg${i} 加载中...`);
+          el.addEventListener('load', () => debugLog(`[OK] bg${i} ${el.naturalWidth}x${el.naturalHeight}`));
+          el.addEventListener('error', () => debugLog(`[失败] bg${i}`));
+        }
+      } else {
+        debugLog(`[缺失] pre-bg${i} 标签未找到`);
+      }
+    }
+    // Role images from HTML preload tags
+    for (let i = 1; i <= 5; i++) {
+      const el = document.getElementById('pre-role' + i);
+      if (el) {
+        avatarCache[i] = el;
+        if (el.complete && el.naturalWidth > 0) {
+          debugLog(`[OK] role${i} ${el.naturalWidth}x${el.naturalHeight} (HTML预加载)`);
+        } else if (el.dataset.err === '1') {
+          debugLog(`[失败] role${i} HTML预加载失败`);
+        } else {
+          debugLog(`[等待] role${i} 加载中...`);
+          el.addEventListener('load', () => debugLog(`[OK] role${i} ${el.naturalWidth}x${el.naturalHeight}`));
+          el.addEventListener('error', () => debugLog(`[失败] role${i}`));
+        }
+      } else {
+        debugLog(`[缺失] pre-role${i} 标签未找到`);
+      }
     }
   }
-  preloadImages();
+
+  // Run after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initImageCache);
+  } else {
+    initImageCache();
+  }
 
   const PATTERN_LABELS = {
     'rocket': '🚀 火箭', 'bomb': '💣 炸弹', 'single': '单张', 'pair': '对子',
@@ -1157,7 +1119,9 @@ const GameRenderer = (() => {
     // Image status summary
     const loadedBg = Object.keys(bgCache).filter(k => bgCache[k] && bgCache[k].complete && bgCache[k].naturalWidth > 0);
     const loadedRole = Object.keys(avatarCache).filter(k => avatarCache[k] && avatarCache[k].complete && avatarCache[k].naturalWidth > 0);
-    const failedCount = Object.keys(imageLoadFailed).length;
+    const failedBg = Object.keys(bgCache).filter(k => bgCache[k] && bgCache[k].dataset && bgCache[k].dataset.err === '1');
+    const failedRole = Object.keys(avatarCache).filter(k => avatarCache[k] && avatarCache[k].dataset && avatarCache[k].dataset.err === '1');
+    const failedCount = failedBg.length + failedRole.length;
     const totalBg = 7, totalRole = 5;
 
     ctx.fillStyle = '#4caf50';
