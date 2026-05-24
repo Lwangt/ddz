@@ -674,16 +674,80 @@
   function checkOrientation() {
     const isPortrait = window.innerHeight > window.innerWidth;
     const overlay = document.getElementById('rotateOverlay');
-    if (isPortrait && !portraitWarned) {
+    if (isPortrait) {
       if (overlay) overlay.classList.remove('hidden');
-    } else if (!isPortrait) {
+      portraitWarned = true;
+    } else {
       if (overlay) overlay.classList.add('hidden');
       portraitWarned = false;
+      const errEl = document.getElementById('rotateError');
+      if (errEl) errEl.style.display = 'none';
     }
     resize();
   }
 
-  // Try native orientation lock
+  // Rotate button — try orientation API + fullscreen
+  async function requestLandscape() {
+    const errEl = document.getElementById('rotateError');
+    errEl.style.display = 'none';
+
+    // Method 1: Screen Orientation API
+    try {
+      if (screen.orientation && screen.orientation.lock) {
+        await screen.orientation.lock('landscape');
+        return; // success
+      }
+    } catch (e) {
+      // orientation.lock requires fullscreen on some browsers
+    }
+
+    // Method 2: Request fullscreen first, then lock
+    try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock('landscape');
+          return;
+        }
+      }
+    } catch (e) {
+      // fullscreen denied or not supported
+    }
+
+    // Method 3: Fullscreen API for iOS/webkit
+    try {
+      if (document.documentElement.webkitRequestFullscreen) {
+        await document.documentElement.webkitRequestFullscreen();
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock('landscape');
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // All methods failed — show reason
+    let reason = '无法切换横屏：';
+    if (!screen.orientation || !screen.orientation.lock) {
+      reason += '您的浏览器不支持屏幕方向锁定';
+    } else if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) {
+      reason += '请手动将手机横放，并确保未锁定竖屏';
+    } else {
+      reason += '请允许全屏权限后重试，或手动将手机横放';
+    }
+    errEl.textContent = reason;
+    errEl.style.display = 'block';
+  }
+
+  // Bind rotate button
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('rotateBtn');
+    if (btn) btn.addEventListener('click', requestLandscape);
+  });
+  // Also bind immediately in case DOM already loaded
+  const rotateBtn = document.getElementById('rotateBtn');
+  if (rotateBtn) rotateBtn.addEventListener('click', requestLandscape);
+
+  // Try native orientation lock on start
   try {
     if (screen.orientation && screen.orientation.lock) {
       screen.orientation.lock('landscape').catch(() => {});
