@@ -14,24 +14,40 @@ const GameRenderer = (() => {
     return (m && m[1] !== '/') ? m[1] : '/';
   }
 
-  // Load image via fetch + createImageBitmap for reliable mobile loading
+  // Load image via fetch + blob URL; fallback to direct Image() on failure
   async function loadImage(url) {
     if (imageLoadFailed[url]) return null;
-    if (imageLoadStarted[url]) return null; // already in progress
+    if (imageLoadStarted[url]) return null;
     imageLoadStarted[url] = true;
+
+    // Method 1: fetch + blob URL
     try {
       const resp = await fetch(url);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const blob = await resp.blob();
       const img = new Image();
+      const blobUrl = URL.createObjectURL(blob);
       return new Promise((resolve, reject) => {
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error('decode failed'));
-        img.src = URL.createObjectURL(blob);
+        img.onload = () => { URL.revokeObjectURL(blobUrl); resolve(img); };
+        img.onerror = () => { URL.revokeObjectURL(blobUrl); reject(new Error('decode')); };
+        img.src = blobUrl;
       });
     } catch (err) {
+      console.warn('[img] fetch failed, trying direct:', url, err.message);
+    }
+
+    // Method 2: direct Image() — works on most browsers
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      return new Promise((resolve, reject) => {
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('direct load failed'));
+        img.src = url;
+      });
+    } catch (err2) {
       imageLoadFailed[url] = true;
-      console.warn('[img] load failed:', url, err.message);
+      console.warn('[img] all methods failed:', url, err2.message);
       return null;
     }
   }
