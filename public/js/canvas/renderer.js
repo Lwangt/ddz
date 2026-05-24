@@ -3,38 +3,59 @@ const GameRenderer = (() => {
   let ctx = null;
   let gameState = null;
 
-  // Image caches — using DOM elements for reliable mobile loading
+  // Image caches
   const avatarCache = {};
   const bgCache = {};
-  const preloadPool = document.createElement('div');
-  preloadPool.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none';
-  document.body.appendChild(preloadPool);
+  const imageLoadStarted = {};
+  const imageLoadFailed = {};
 
-  // Detect base path for absolute URL construction (handles /ddz/ subpath)
   function getBase() {
     const m = window.location.pathname.match(/^(\/[^/]+\/)/);
     return (m && m[1] !== '/') ? m[1] : '/';
   }
 
-  function preloadImages() {
-    const base = getBase();
-    for (let i = 1; i <= 5; i++) {
-      const el = document.createElement('img');
-      const url = base + encodeURI(`image/role/角色${i}.png`);
-      el.src = url;
-      el.onload = () => { avatarCache[i] = el; };
-      el.onerror = () => console.warn('[preload] role failed:', url);
-      preloadPool.appendChild(el);
-      avatarCache[i] = el; // also cache immediately (may not be loaded yet)
+  // Load image via fetch + createImageBitmap for reliable mobile loading
+  async function loadImage(url) {
+    if (imageLoadFailed[url]) return null;
+    if (imageLoadStarted[url]) return null; // already in progress
+    imageLoadStarted[url] = true;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob = await resp.blob();
+      const img = new Image();
+      return new Promise((resolve, reject) => {
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('decode failed'));
+        img.src = URL.createObjectURL(blob);
+      });
+    } catch (err) {
+      imageLoadFailed[url] = true;
+      console.warn('[img] load failed:', url, err.message);
+      return null;
     }
+  }
+
+  async function preloadImages() {
+    const base = window.location.origin + getBase();
+    console.log('[img] base URL:', base);
+
+    // Load role images
+    for (let i = 1; i <= 5; i++) {
+      const url = base + encodeURI(`image/role/角色${i}.png`);
+      console.log('[img] loading role', i, url);
+      loadImage(url).then(img => {
+        if (img) { avatarCache[i] = img; console.log('[img] role loaded:', i); }
+      });
+    }
+
+    // Load bg images
     for (let i = 1; i <= 7; i++) {
-      const el = document.createElement('img');
       const url = base + `image/bg/bg${i}.png`;
-      el.src = url;
-      el.onload = () => { bgCache[i] = el; };
-      el.onerror = () => console.warn('[preload] bg failed:', url);
-      preloadPool.appendChild(el);
-      bgCache[i] = el;
+      console.log('[img] loading bg', i, url);
+      loadImage(url).then(img => {
+        if (img) { bgCache[i] = img; console.log('[img] bg loaded:', i); }
+      });
     }
   }
   preloadImages();
