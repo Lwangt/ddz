@@ -3,9 +3,12 @@ const GameRenderer = (() => {
   let ctx = null;
   let gameState = null;
 
-  // Image caches
+  // Image caches — using DOM elements for reliable mobile loading
   const avatarCache = {};
   const bgCache = {};
+  const preloadPool = document.createElement('div');
+  preloadPool.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none';
+  document.body.appendChild(preloadPool);
 
   // Detect base path for absolute URL construction (handles /ddz/ subpath)
   function getBase() {
@@ -16,17 +19,22 @@ const GameRenderer = (() => {
   function preloadImages() {
     const base = getBase();
     for (let i = 1; i <= 5; i++) {
-      const img = new Image();
-      img.onerror = () => console.warn('[preload] failed:', img.src);
-      img.src = base + encodeURI(`image/role/角色${i}.png`);
-      avatarCache[i] = img;
+      const el = document.createElement('img');
+      const url = base + encodeURI(`image/role/角色${i}.png`);
+      el.src = url;
+      el.onload = () => { avatarCache[i] = el; };
+      el.onerror = () => console.warn('[preload] role failed:', url);
+      preloadPool.appendChild(el);
+      avatarCache[i] = el; // also cache immediately (may not be loaded yet)
     }
     for (let i = 1; i <= 7; i++) {
-      const img = new Image();
-      img.onload = () => console.log('[preload] loaded:', img.src);
-      img.onerror = () => console.warn('[preload] failed:', img.src);
-      img.src = base + `image/bg/bg${i}.png`;
-      bgCache[i] = img;
+      const el = document.createElement('img');
+      const url = base + `image/bg/bg${i}.png`;
+      el.src = url;
+      el.onload = () => { bgCache[i] = el; };
+      el.onerror = () => console.warn('[preload] bg failed:', url);
+      preloadPool.appendChild(el);
+      bgCache[i] = el;
     }
   }
   preloadImages();
