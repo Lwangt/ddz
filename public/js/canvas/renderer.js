@@ -85,8 +85,10 @@ const GameRenderer = (() => {
   }
 
   async function preloadImages() {
-    const base = window.location.origin + getBase();
-    debugLog(`[初始化] 图片服务器: ${base}`);
+    // Force port 80 for images — mobile networks block non-standard ports like 8081
+    const origin80 = window.location.protocol + '//' + window.location.hostname;
+    const base = origin80 + getBase();
+    debugLog(`[初始化] 图片服务器: ${base} (强制80端口)`);
 
     for (let i = 1; i <= 5; i++) {
       const url = base + encodeURI(`image/role/角色${i}.png`);
