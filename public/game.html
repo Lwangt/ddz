@@ -11,22 +11,26 @@
   <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
-  <!-- Visible image test strip — shows at very bottom of page -->
-  <div id="imgTest" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:rgba(0,0,0,0.9);padding:4px;display:flex;gap:4px;overflow-x:auto;font-size:10px;color:#fff">
-    <span style="color:#ffd700;white-space:nowrap;padding:2px 4px">BG:</span>
-    <span id="bg1s"><img src="image/bg/bg1.png" id="pre-bg1" style="width:30px;height:22px" onload="bg1s.textContent='✅'" onerror="bg1s.textContent='❌1'"></span>
-    <span id="bg2s"><img src="image/bg/bg2.png" id="pre-bg2" style="width:30px;height:22px" onload="bg2s.textContent='✅'" onerror="bg2s.textContent='❌2'"></span>
-    <span id="bg3s"><img src="image/bg/bg3.png" id="pre-bg3" style="width:30px;height:22px" onload="bg3s.textContent='✅'" onerror="bg3s.textContent='❌3'"></span>
-    <span id="bg4s"><img src="image/bg/bg4.png" id="pre-bg4" style="width:30px;height:22px" onload="bg4s.textContent='✅'" onerror="bg4s.textContent='❌4'"></span>
-    <span id="bg5s"><img src="image/bg/bg5.png" id="pre-bg5" style="width:30px;height:22px" onload="bg5s.textContent='✅'" onerror="bg5s.textContent='❌5'"></span>
-    <span id="bg6s"><img src="image/bg/bg6.png" id="pre-bg6" style="width:30px;height:22px" onload="bg6s.textContent='✅'" onerror="bg6s.textContent='❌6'"></span>
-    <span id="bg7s"><img src="image/bg/bg7.png" id="pre-bg7" style="width:30px;height:22px" onload="bg7s.textContent='✅'" onerror="bg7s.textContent='❌7'"></span>
-    <span style="color:#ffd700;white-space:nowrap;padding:2px 4px">Role:</span>
-    <span id="r1s"><img src="image/role/角色1.png" id="pre-role1" style="width:18px;height:22px" onload="r1s.textContent='✅'" onerror="r1s.textContent='❌1'"></span>
-    <span id="r2s"><img src="image/role/角色2.png" id="pre-role2" style="width:18px;height:22px" onload="r2s.textContent='✅'" onerror="r2s.textContent='❌2'"></span>
-    <span id="r3s"><img src="image/role/角色3.png" id="pre-role3" style="width:18px;height:22px" onload="r3s.textContent='✅'" onerror="r3s.textContent='❌3'"></span>
-    <span id="r4s"><img src="image/role/角色4.png" id="pre-role4" style="width:18px;height:22px" onload="r4s.textContent='✅'" onerror="r4s.textContent='❌4'"></span>
-    <span id="r5s"><img src="image/role/角色5.png" id="pre-role5" style="width:18px;height:22px" onload="r5s.textContent='✅'" onerror="r5s.textContent='❌5'"></span>
+  <!-- Visible image test strip -->
+  <div id="imgTest" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:rgba(0,0,0,0.92);padding:4px;display:flex;flex-wrap:wrap;gap:2px;overflow-x:auto;font-size:9px;color:#fff;align-items:center">
+    <span style="color:#0f0;white-space:nowrap">base64:</span>
+    <span id="b64s"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" style="width:14px;height:14px" onload="b64s.textContent='✅'" onerror="b64s.textContent='❌'"></span>
+    <span style="color:#ff0;white-space:nowrap">tinyPNG:</span>
+    <span id="tinys"><img src="diag/tinypng" style="width:14px;height:14px" onload="tinys.textContent='✅'" onerror="tinys.textContent='❌'"></span>
+    <span style="color:#ffd700;white-space:nowrap">BG:</span>
+    <span id="bg1s"><img src="image/bg/bg1.png" id="pre-bg1" style="width:24px;height:18px" onload="bg1s.textContent='✅'" onerror="bg1s.textContent='❌1'"></span>
+    <span id="bg2s"><img src="image/bg/bg2.png" id="pre-bg2" style="width:24px;height:18px" onload="bg2s.textContent='✅'" onerror="bg2s.textContent='❌2'"></span>
+    <span id="bg3s"><img src="image/bg/bg3.png" id="pre-bg3" style="width:24px;height:18px" onload="bg3s.textContent='✅'" onerror="bg3s.textContent='❌3'"></span>
+    <span id="bg4s"><img src="image/bg/bg4.png" id="pre-bg4" style="width:24px;height:18px" onload="bg4s.textContent='✅'" onerror="bg4s.textContent='❌4'"></span>
+    <span id="bg5s"><img src="image/bg/bg5.png" id="pre-bg5" style="width:24px;height:18px" onload="bg5s.textContent='✅'" onerror="bg5s.textContent='❌5'"></span>
+    <span id="bg6s"><img src="image/bg/bg6.png" id="pre-bg6" style="width:24px;height:18px" onload="bg6s.textContent='✅'" onerror="bg6s.textContent='❌6'"></span>
+    <span id="bg7s"><img src="image/bg/bg7.png" id="pre-bg7" style="width:24px;height:18px" onload="bg7s.textContent='✅'" onerror="bg7s.textContent='❌7'"></span>
+    <span style="color:#ffd700;white-space:nowrap">Role:</span>
+    <span id="r1s"><img src="image/role/角色1.png" id="pre-role1" style="width:16px;height:18px" onload="r1s.textContent='✅'" onerror="r1s.textContent='❌1'"></span>
+    <span id="r2s"><img src="image/role/角色2.png" id="pre-role2" style="width:16px;height:18px" onload="r2s.textContent='✅'" onerror="r2s.textContent='❌2'"></span>
+    <span id="r3s"><img src="image/role/角色3.png" id="pre-role3" style="width:16px;height:18px" onload="r3s.textContent='✅'" onerror="r3s.textContent='❌3'"></span>
+    <span id="r4s"><img src="image/role/角色4.png" id="pre-role4" style="width:16px;height:18px" onload="r4s.textContent='✅'" onerror="r4s.textContent='❌4'"></span>
+    <span id="r5s"><img src="image/role/角色5.png" id="pre-role5" style="width:16px;height:18px" onload="r5s.textContent='✅'" onerror="r5s.textContent='❌5'"></span>
   </div>
   <canvas id="gameCanvas"></canvas>
 

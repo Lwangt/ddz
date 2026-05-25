@@ -16,20 +16,38 @@ const io = new Server(server, {
 
 const fs = require('fs');
 
-// Diagnostic: list image files on server
+// Diagnostic: list image files + test-read first 100 bytes
 app.get('/diag/images', (req, res) => {
   const imgDir = path.join(__dirname, 'public', 'image');
-  const result = { base: imgDir, exists: fs.existsSync(imgDir), dirs: {} };
+  const result = { base: imgDir, cwd: process.cwd(), staticRoot: path.join(__dirname, 'public') };
   try {
     for (const entry of fs.readdirSync(imgDir, { withFileTypes: true })) {
       if (entry.isDirectory()) {
-        result.dirs[entry.name] = fs.readdirSync(path.join(imgDir, entry.name)).map(f => ({
-          name: f, size: fs.statSync(path.join(imgDir, entry.name, f)).size
-        }));
+        result[entry.name] = fs.readdirSync(path.join(imgDir, entry.name)).map(f => {
+          const fp = path.join(imgDir, entry.name, f);
+          const stat = fs.statSync(fp);
+          // Test read first 100 bytes
+          let firstBytes = null;
+          try {
+            const fd = fs.openSync(fp, 'r');
+            const buf = Buffer.alloc(100);
+            fs.readSync(fd, buf, 0, 100, 0);
+            fs.closeSync(fd);
+            firstBytes = buf.toString('hex');
+          } catch(e) { firstBytes = 'READ_ERR:' + e.message; }
+          return { name: f, size: stat.size, hex: firstBytes };
+        });
       }
     }
   } catch(e) { result.error = e.message; }
   res.json(result);
+});
+
+// Tiny 1x1 PNG for nginx binary proxy test
+const TINY_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+app.get('/diag/tinypng', (req, res) => {
+  res.set({ 'Content-Type': 'image/png', 'Content-Length': TINY_PNG.length });
+  res.send(TINY_PNG);
 });
 
 // Static files — handles Range requests, conditional GETs, caching natively
