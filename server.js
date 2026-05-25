@@ -50,11 +50,15 @@ app.get('/diag/tinypng', (req, res) => {
   res.send(TINY_PNG);
 });
 
-// Static files — handles Range requests, conditional GETs, caching natively
+// Static files — nginx buffering disabled for large images
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1h',
-  setHeaders: (res) => {
+  setHeaders: (res, filePath) => {
     res.set('Access-Control-Allow-Origin', '*');
+    // Tell nginx NOT to buffer large files (fixes mobile image loading)
+    if (filePath && /\.(png|jpg|jpeg|gif|webp)$/i.test(filePath)) {
+      res.set('X-Accel-Buffering', 'no');
+    }
   }
 }));
 
