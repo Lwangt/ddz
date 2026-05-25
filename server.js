@@ -50,14 +50,18 @@ app.get('/diag/tinypng', (req, res) => {
   res.send(TINY_PNG);
 });
 
-// Static files — nginx buffering disabled for large images
+// Static files — cache images, never cache JS/CSS/HTML
 app.use(express.static(path.join(__dirname, 'public'), {
-  maxAge: '1h',
   setHeaders: (res, filePath) => {
     res.set('Access-Control-Allow-Origin', '*');
-    // Tell nginx NOT to buffer large files (fixes mobile image loading)
     if (filePath && /\.(png|jpg|jpeg|gif|webp)$/i.test(filePath)) {
+      res.set('Cache-Control', 'public, max-age=3600');
       res.set('X-Accel-Buffering', 'no');
+    } else {
+      // Never cache JS/CSS/HTML — critical for mobile deploy updates
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
     }
   }
 }));
