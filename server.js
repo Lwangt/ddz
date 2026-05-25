@@ -45,34 +45,32 @@ app.get('/img/bg/:id', (req, res) => {
     console.log(`[img] 404 bg${req.params.id}: ${filePath}`);
     return res.status(404).json({ error: 'not found' });
   }
-  res.set('Cache-Control', 'public, max-age=3600');
-  res.set('Access-Control-Allow-Origin', '*');
-  const stream = fs.createReadStream(filePath);
-  stream.on('error', (err) => {
-    console.log(`[img] ERR bg${req.params.id}: ${err.message}`);
+  const stat = fs.statSync(filePath);
+  res.set({
+    'Content-Type': 'image/png',
+    'Content-Length': stat.size,
+    'Cache-Control': 'public, max-age=3600',
+    'Access-Control-Allow-Origin': '*'
   });
-  stream.on('end', () => {
-    console.log(`[img] OK bg${req.params.id} sent`);
-  });
-  stream.pipe(res);
+  console.log(`[img] SEND bg${req.params.id} ${(stat.size/1024).toFixed(0)}KB`);
+  fs.createReadStream(filePath).pipe(res);
 });
 app.get('/img/role/:id', (req, res) => {
   const filePath = path.join(__dirname, 'public', 'image', 'role', `角色${req.params.id}.png`);
-  console.log(`[img] REQ role${req.params.id} from ${req.ip} ua=${(req.get('user-agent')||'').slice(0,40)}`);
+  console.log(`[img] REQ role${req.params.id} from ${req.ip}`);
   if (!fs.existsSync(filePath)) {
     console.log(`[img] 404 role${req.params.id}: ${filePath}`);
     return res.status(404).json({ error: 'not found' });
   }
-  res.set('Cache-Control', 'public, max-age=3600');
-  res.set('Access-Control-Allow-Origin', '*');
-  const stream = fs.createReadStream(filePath);
-  stream.on('error', (err) => {
-    console.log(`[img] ERR role${req.params.id}: ${err.message}`);
+  const stat = fs.statSync(filePath);
+  res.set({
+    'Content-Type': 'image/png',
+    'Content-Length': stat.size,
+    'Cache-Control': 'public, max-age=3600',
+    'Access-Control-Allow-Origin': '*'
   });
-  stream.on('end', () => {
-    console.log(`[img] OK role${req.params.id} sent`);
-  });
-  stream.pipe(res);
+  console.log(`[img] SEND role${req.params.id} ${(stat.size/1024).toFixed(0)}KB`);
+  fs.createReadStream(filePath).pipe(res);
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
