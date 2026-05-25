@@ -36,7 +36,7 @@ const Layout = (() => {
   function p0Area() {
     const ch = cardH();
     const btnH = 52 * scale;
-    const charW = 115 * scale;
+    const charW = 148 * scale;
     return {
       x: charW + 10 * scale,
       y: h - ch - btnH - 18 * scale,
@@ -50,8 +50,8 @@ const Layout = (() => {
     const p0 = p0Area();
     const ch = cardH();
     const btnH = 52 * scale;
-    const charW = 110 * scale;
-    const charH = 140 * scale;
+    const charW = 143 * scale;
+    const charH = 182 * scale;
     const podBottom = h - btnH - 4 * scale;
     return {
       x: 6 * scale,
