@@ -338,8 +338,9 @@ class Room {
   }
 
   determineLandlord() {
+    if (this.state !== C.PHASE_BIDDING) return; // prevent double-call
     const landlord = this.players[this.highestBidderIndex];
-    if (!landlord) return; // safety check
+    if (!landlord) return;
     landlord.isLandlord = true;
 
     // Give bonus cards to landlord

@@ -456,7 +456,53 @@ async function main() {
       L.topChar.y + L.topChar.h <= L.pa.y + 4);
   }
 
-  // ── Test 8: Multiple full games ───────────────────────────
+  // ── Test 8: Test mode — 2 players + fill 1 bot ───────────
+  console.log('\n--- 测试模式 2玩家+1机器人 ---');
+  const mockIo8 = makeMockIo();
+  const room8 = new Room('MIXED', mockIo8);
+  room8.testMode = true;
+  room8.addPlayer('human1', '玩家1');
+  room8.addPlayer('human2', '玩家2');
+  check('测试模式2玩家加入', room8.players.length === 2);
+  check('无机器人', room8.players.every(p => !p.isBot));
+
+  // Start game — should auto-fill 1 bot
+  const started = room8.startGame();
+  check('游戏成功开始', started);
+  check('自动填充1个机器人', room8.players.length === 3);
+  check('恰好1个机器人', room8.players.filter(p => p.isBot).length === 1);
+  check('机器人有策略', room8.players.find(p => p.isBot).botStrategy !== null);
+  check('每人17张牌', room8.players.every(p => p.hand.length === 17));
+  check('两个人类都是connected', room8.players.filter(p => !p.isBot).every(p => p.isConnected));
+
+  // Run bidding
+  await new Promise(r => setTimeout(r, 200));
+  room8.startBidding();
+  await new Promise(r => setTimeout(r, 500));
+  for (const p of room8.players) {
+    if (!(p.seatIndex in room8.bidResponses)) {
+      const amt = p.botStrategy ? p.botStrategy.decideBid(room8.currentBid) : 2;
+      room8.processBid(p.id, amt);
+    }
+  }
+  if (room8.state === 'BIDDING') room8.finishBidding();
+  await new Promise(r => setTimeout(r, 1200));
+
+  check('叫地主后进入PLAYING', room8.state === C.PHASE_PLAYING, 'state=' + room8.state);
+  const landlord8 = room8.players.find(p => p.isLandlord);
+  check('地主已确定', !!landlord8);
+  if (landlord8) {
+    check('地主20张牌', landlord8.hand.length === 20);
+  }
+
+  // Play phase
+  await playPhase(room8, 100);
+  check('混合模式游戏正常结束', room8.state === C.PHASE_FINISHED, 'state=' + room8.state);
+  if (room8.state === C.PHASE_FINISHED) {
+    check('积分总和为0', room8.players.reduce((s, p) => s + p.score, 0) === 0);
+  }
+
+  // ── Test 9: Multiple full games ───────────────────────────
   console.log('\n--- 多局完整对战 ---');
   for (let i = 0; i < 3; i++) {
     await testFullGame();
