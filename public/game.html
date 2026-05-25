@@ -11,20 +11,20 @@
   <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
-  <!-- Preload images via HTML parser (works on all browsers incl. mobile) -->
+  <!-- Preload images via Express /img/ route + static fallback -->
   <div style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
-    <img src="image/bg/bg1.png" id="pre-bg1" onerror="this.dataset.err='1'">
-    <img src="image/bg/bg2.png" id="pre-bg2" onerror="this.dataset.err='1'">
-    <img src="image/bg/bg3.png" id="pre-bg3" onerror="this.dataset.err='1'">
-    <img src="image/bg/bg4.png" id="pre-bg4" onerror="this.dataset.err='1'">
-    <img src="image/bg/bg5.png" id="pre-bg5" onerror="this.dataset.err='1'">
-    <img src="image/bg/bg6.png" id="pre-bg6" onerror="this.dataset.err='1'">
-    <img src="image/bg/bg7.png" id="pre-bg7" onerror="this.dataset.err='1'">
-    <img src="image/role/角色1.png" id="pre-role1" onerror="this.dataset.err='1'">
-    <img src="image/role/角色2.png" id="pre-role2" onerror="this.dataset.err='1'">
-    <img src="image/role/角色3.png" id="pre-role3" onerror="this.dataset.err='1'">
-    <img src="image/role/角色4.png" id="pre-role4" onerror="this.dataset.err='1'">
-    <img src="image/role/角色5.png" id="pre-role5" onerror="this.dataset.err='1'">
+    <img src="img/bg/1" id="pre-bg1" onerror="this.dataset.err='1';this.src='image/bg/bg1.png'">
+    <img src="img/bg/2" id="pre-bg2" onerror="this.dataset.err='1';this.src='image/bg/bg2.png'">
+    <img src="img/bg/3" id="pre-bg3" onerror="this.dataset.err='1';this.src='image/bg/bg3.png'">
+    <img src="img/bg/4" id="pre-bg4" onerror="this.dataset.err='1';this.src='image/bg/bg4.png'">
+    <img src="img/bg/5" id="pre-bg5" onerror="this.dataset.err='1';this.src='image/bg/bg5.png'">
+    <img src="img/bg/6" id="pre-bg6" onerror="this.dataset.err='1';this.src='image/bg/bg6.png'">
+    <img src="img/bg/7" id="pre-bg7" onerror="this.dataset.err='1';this.src='image/bg/bg7.png'">
+    <img src="img/role/1" id="pre-role1" onerror="this.dataset.err='1';this.src='image/role/角色1.png'">
+    <img src="img/role/2" id="pre-role2" onerror="this.dataset.err='1';this.src='image/role/角色2.png'">
+    <img src="img/role/3" id="pre-role3" onerror="this.dataset.err='1';this.src='image/role/角色3.png'">
+    <img src="img/role/4" id="pre-role4" onerror="this.dataset.err='1';this.src='image/role/角色4.png'">
+    <img src="img/role/5" id="pre-role5" onerror="this.dataset.err='1';this.src='image/role/角色5.png'">
   </div>
   <canvas id="gameCanvas"></canvas>
 

@@ -14,6 +14,47 @@ const io = new Server(server, {
   },
 });
 
+const fs = require('fs');
+
+// Diagnostic: list image files on server (accessible at /ddz/diag/images)
+app.get('/diag/images', (req, res) => {
+  const imgDir = path.join(__dirname, 'public', 'image');
+  const result = { base: imgDir, exists: fs.existsSync(imgDir), dirs: {} };
+  try {
+    const entries = fs.readdirSync(imgDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const subPath = path.join(imgDir, entry.name);
+        const files = fs.readdirSync(subPath);
+        result.dirs[entry.name] = files.map(f => {
+          const fp = path.join(subPath, f);
+          const stat = fs.statSync(fp);
+          return { name: f, size: stat.size, readable: true };
+        });
+      }
+    }
+  } catch(e) { result.error = e.message; }
+  res.json(result);
+});
+
+// Dedicated image serving route — bypasses nginx static file quirks
+app.get('/img/bg/:id', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'image', 'bg', `bg${req.params.id}.png`);
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.set('Access-Control-Allow-Origin', '*');
+  res.sendFile(filePath, (err) => {
+    if (err) res.status(404).json({ error: 'not found', path: filePath });
+  });
+});
+app.get('/img/role/:id', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'image', 'role', `角色${req.params.id}.png`);
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.set('Access-Control-Allow-Origin', '*');
+  res.sendFile(filePath, (err) => {
+    if (err) res.status(404).json({ error: 'not found', path: filePath, id: req.params.id });
+  });
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 const gameManager = new GameManager(io);
