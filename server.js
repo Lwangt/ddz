@@ -16,64 +16,29 @@ const io = new Server(server, {
 
 const fs = require('fs');
 
-// Diagnostic: list image files on server (accessible at /ddz/diag/images)
+// Diagnostic: list image files on server
 app.get('/diag/images', (req, res) => {
   const imgDir = path.join(__dirname, 'public', 'image');
   const result = { base: imgDir, exists: fs.existsSync(imgDir), dirs: {} };
   try {
-    const entries = fs.readdirSync(imgDir, { withFileTypes: true });
-    for (const entry of entries) {
+    for (const entry of fs.readdirSync(imgDir, { withFileTypes: true })) {
       if (entry.isDirectory()) {
-        const subPath = path.join(imgDir, entry.name);
-        const files = fs.readdirSync(subPath);
-        result.dirs[entry.name] = files.map(f => {
-          const fp = path.join(subPath, f);
-          const stat = fs.statSync(fp);
-          return { name: f, size: stat.size, readable: true };
-        });
+        result.dirs[entry.name] = fs.readdirSync(path.join(imgDir, entry.name)).map(f => ({
+          name: f, size: fs.statSync(path.join(imgDir, entry.name, f)).size
+        }));
       }
     }
   } catch(e) { result.error = e.message; }
   res.json(result);
 });
 
-// Dedicated image serving route — logs every request for mobile debugging
-app.get('/img/bg/:id', (req, res) => {
-  const filePath = path.join(__dirname, 'public', 'image', 'bg', `bg${req.params.id}.png`);
-  console.log(`[img] REQ bg${req.params.id} from ${req.ip} ua=${(req.get('user-agent')||'').slice(0,40)}`);
-  if (!fs.existsSync(filePath)) {
-    console.log(`[img] 404 bg${req.params.id}: ${filePath}`);
-    return res.status(404).json({ error: 'not found' });
+// Static files — handles Range requests, conditional GETs, caching natively
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1h',
+  setHeaders: (res) => {
+    res.set('Access-Control-Allow-Origin', '*');
   }
-  const stat = fs.statSync(filePath);
-  res.set({
-    'Content-Type': 'image/png',
-    'Content-Length': stat.size,
-    'Cache-Control': 'public, max-age=3600',
-    'Access-Control-Allow-Origin': '*'
-  });
-  console.log(`[img] SEND bg${req.params.id} ${(stat.size/1024).toFixed(0)}KB`);
-  fs.createReadStream(filePath).pipe(res);
-});
-app.get('/img/role/:id', (req, res) => {
-  const filePath = path.join(__dirname, 'public', 'image', 'role', `角色${req.params.id}.png`);
-  console.log(`[img] REQ role${req.params.id} from ${req.ip}`);
-  if (!fs.existsSync(filePath)) {
-    console.log(`[img] 404 role${req.params.id}: ${filePath}`);
-    return res.status(404).json({ error: 'not found' });
-  }
-  const stat = fs.statSync(filePath);
-  res.set({
-    'Content-Type': 'image/png',
-    'Content-Length': stat.size,
-    'Cache-Control': 'public, max-age=3600',
-    'Access-Control-Allow-Origin': '*'
-  });
-  console.log(`[img] SEND role${req.params.id} ${(stat.size/1024).toFixed(0)}KB`);
-  fs.createReadStream(filePath).pipe(res);
-});
-
-app.use(express.static(path.join(__dirname, 'public')));
+}));
 
 const gameManager = new GameManager(io);
 

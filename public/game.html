@@ -11,20 +11,20 @@
   <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
-  <!-- Preload images — offscreen with 1x1 size to trigger mobile loading -->
-  <div style="position:fixed;left:-9999px;top:0;width:12px;height:12px;overflow:visible" aria-hidden="true">
-    <img src="img/bg/1" id="pre-bg1" style="width:1px;height:1px" onerror="this.dataset.err='1';this.src='image/bg/bg1.png'">
-    <img src="img/bg/2" id="pre-bg2" style="width:1px;height:1px" onerror="this.dataset.err='1';this.src='image/bg/bg2.png'">
-    <img src="img/bg/3" id="pre-bg3" style="width:1px;height:1px" onerror="this.dataset.err='1';this.src='image/bg/bg3.png'">
-    <img src="img/bg/4" id="pre-bg4" style="width:1px;height:1px" onerror="this.dataset.err='1';this.src='image/bg/bg4.png'">
-    <img src="img/bg/5" id="pre-bg5" style="width:1px;height:1px" onerror="this.dataset.err='1';this.src='image/bg/bg5.png'">
-    <img src="img/bg/6" id="pre-bg6" style="width:1px;height:1px" onerror="this.dataset.err='1';this.src='image/bg/bg6.png'">
-    <img src="img/bg/7" id="pre-bg7" style="width:1px;height:1px" onerror="this.dataset.err='1';this.src='image/bg/bg7.png'">
-    <img src="img/role/1" id="pre-role1" style="width:1px;height:1px" onerror="this.dataset.err='1';this.src='image/role/角色1.png'">
-    <img src="img/role/2" id="pre-role2" style="width:1px;height:1px" onerror="this.dataset.err='1';this.src='image/role/角色2.png'">
-    <img src="img/role/3" id="pre-role3" style="width:1px;height:1px" onerror="this.dataset.err='1';this.src='image/role/角色3.png'">
-    <img src="img/role/4" id="pre-role4" style="width:1px;height:1px" onerror="this.dataset.err='1';this.src='image/role/角色4.png'">
-    <img src="img/role/5" id="pre-role5" style="width:1px;height:1px" onerror="this.dataset.err='1';this.src='image/role/角色5.png'">
+  <!-- Preload images via native <img> — express.static handles Range/304/caching -->
+  <div style="position:fixed;left:-9999px;top:0;width:1px;height:1px" aria-hidden="true">
+    <img src="image/bg/bg1.png" id="pre-bg1" onload="delete this.dataset.err" onerror="this.dataset.err='1'">
+    <img src="image/bg/bg2.png" id="pre-bg2" onload="delete this.dataset.err" onerror="this.dataset.err='1'">
+    <img src="image/bg/bg3.png" id="pre-bg3" onload="delete this.dataset.err" onerror="this.dataset.err='1'">
+    <img src="image/bg/bg4.png" id="pre-bg4" onload="delete this.dataset.err" onerror="this.dataset.err='1'">
+    <img src="image/bg/bg5.png" id="pre-bg5" onload="delete this.dataset.err" onerror="this.dataset.err='1'">
+    <img src="image/bg/bg6.png" id="pre-bg6" onload="delete this.dataset.err" onerror="this.dataset.err='1'">
+    <img src="image/bg/bg7.png" id="pre-bg7" onload="delete this.dataset.err" onerror="this.dataset.err='1'">
+    <img src="image/role/角色1.png" id="pre-role1" onload="delete this.dataset.err" onerror="this.dataset.err='1'">
+    <img src="image/role/角色2.png" id="pre-role2" onload="delete this.dataset.err" onerror="this.dataset.err='1'">
+    <img src="image/role/角色3.png" id="pre-role3" onload="delete this.dataset.err" onerror="this.dataset.err='1'">
+    <img src="image/role/角色4.png" id="pre-role4" onload="delete this.dataset.err" onerror="this.dataset.err='1'">
+    <img src="image/role/角色5.png" id="pre-role5" onload="delete this.dataset.err" onerror="this.dataset.err='1'">
   </div>
   <canvas id="gameCanvas"></canvas>
 
