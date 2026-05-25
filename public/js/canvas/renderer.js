@@ -89,24 +89,23 @@ const GameRenderer = (() => {
 
     // Draw background image as bottom layer
     const bgId = gameState.bg;
-    if (bgId && bgCache[bgId] && bgCache[bgId].complete && bgCache[bgId].naturalWidth > 0) {
-      const bgImg = bgCache[bgId];
-      const bgRatio = bgImg.naturalWidth / bgImg.naturalHeight;
-      const screenRatio = W / H;
-      let dw, dh, dx, dy;
-      if (screenRatio > bgRatio) {
-        dw = W;
-        dh = W / bgRatio;
-        dx = 0;
-        dy = (H - dh) / 2;
-      } else {
-        dh = H;
-        dw = H * bgRatio;
-        dx = (W - dw) / 2;
-        dy = 0;
+    const bgImg = bgId ? bgCache[bgId] : null;
+    if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+      try {
+        const bgRatio = bgImg.naturalWidth / bgImg.naturalHeight;
+        const screenRatio = W / H;
+        let dw, dh, dx, dy;
+        if (screenRatio > bgRatio) { dw = W; dh = W / bgRatio; dx = 0; dy = (H - dh) / 2; }
+        else { dh = H; dw = H * bgRatio; dx = (W - dw) / 2; dy = 0; }
+        ctx.drawImage(bgImg, dx, dy, dw, dh);
+      } catch(e) {
+        debugLog(`[绘制错误] bg: ${e.message}`);
+        drawBackground(W, H);
       }
-      ctx.drawImage(bgImg, dx, dy, dw, dh);
     } else {
+      if (bgId && !bgImg) debugLog(`[缺失] bgCache[${bgId}] 不存在`);
+      else if (bgImg && !bgImg.complete) debugLog(`[等待] bgCache[${bgId}] 未完成`);
+      else if (bgImg && bgImg.naturalWidth <= 0) debugLog(`[等待] bgCache[${bgId}] nw=0`);
       drawBackground(W, H);
     }
     drawGhostTurnIndicator();
@@ -399,33 +398,28 @@ const GameRenderer = (() => {
   // Draw a full character illustration with correct aspect ratio
   function drawCharacterIllustration(player, x, y, maxW, maxH, sc) {
     const img = avatarCache[player.avatar];
-    if (!img || !img.complete || img.naturalWidth <= 0) return;
-
-    const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
-    const imgRatio = img.naturalWidth / img.naturalHeight;
-
-    // Calculate size fitting within bounds, preserving aspect ratio
-    let drawW, drawH;
-    if (maxW / maxH > imgRatio) {
-      drawH = maxH;
-      drawW = maxH * imgRatio;
-    } else {
-      drawW = maxW;
-      drawH = maxW / imgRatio;
+    if (!img || !img.complete || img.naturalWidth <= 0) {
+      if (player.avatar && !img) debugLog(`[缺失] avatarCache[${player.avatar}]`);
+      return;
     }
-
-    const cx = x + (maxW - drawW) / 2;
-    const cy = y + (maxH - drawH) / 2;
-
-    // Active glow behind the character
-    if (isActive) {
-      const pulse = 0.3 + 0.2 * Math.sin(Date.now() / 400);
-      ctx.shadowColor = `rgba(255,215,0,${pulse})`;
-      ctx.shadowBlur = 20 * sc;
+    try {
+      const imgRatio = img.naturalWidth / img.naturalHeight;
+      let drawW, drawH;
+      if (maxW / maxH > imgRatio) { drawH = maxH; drawW = maxH * imgRatio; }
+      else { drawW = maxW; drawH = maxW / imgRatio; }
+      const cx = x + (maxW - drawW) / 2;
+      const cy = y + (maxH - drawH) / 2;
+      const isActive = player.seatIndex === gameState.currentPlayerIndex && gameState.phase === 'PLAYING';
+      if (isActive) {
+        const pulse = 0.3 + 0.2 * Math.sin(Date.now() / 400);
+        ctx.shadowColor = `rgba(255,215,0,${pulse})`;
+        ctx.shadowBlur = 20 * sc;
+      }
+      ctx.drawImage(img, cx, cy, drawW, drawH);
+      ctx.shadowColor = 'transparent';
+    } catch(e) {
+      debugLog(`[绘制错误] role${player.avatar}: ${e.message}`);
     }
-
-    ctx.drawImage(img, cx, cy, drawW, drawH);
-    ctx.shadowColor = 'transparent';
   }
 
   function drawTopOpponent(player) {
