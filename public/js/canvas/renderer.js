@@ -22,50 +22,26 @@ const GameRenderer = (() => {
   }
 
   function initImageCache() {
-    // Background images from HTML preload tags
+    const base = window.location.origin + '/ddz/';
+    // Load background images via new Image() — most reliable on mobile
     for (let i = 1; i <= 7; i++) {
-      const el = document.getElementById('pre-bg' + i);
-      if (el) {
-        bgCache[i] = el;
-        if (el.complete && el.naturalWidth > 0) {
-          debugLog(`[OK] bg${i} ${el.naturalWidth}x${el.naturalHeight} (HTML预加载)`);
-        } else if (el.dataset.err === '1') {
-          debugLog(`[失败] bg${i} HTML预加载失败`);
-        } else {
-          debugLog(`[等待] bg${i} 加载中...`);
-          el.addEventListener('load', () => debugLog(`[OK] bg${i} ${el.naturalWidth}x${el.naturalHeight}`));
-          el.addEventListener('error', () => debugLog(`[失败] bg${i}`));
-        }
-      } else {
-        debugLog(`[缺失] pre-bg${i} 标签未找到`);
-      }
+      const img = new Image();
+      img.onload = () => { bgCache[i] = img; debugLog(`[OK] bg${i} ${img.naturalWidth}x${img.naturalHeight}`); };
+      img.onerror = () => debugLog(`[失败] bg${i} load error`);
+      img.src = base + `image/bg/bg${i}.png`;
+      debugLog(`[加载] bg${i} ${img.src.substring(0,60)}`);
     }
-    // Role images from HTML preload tags
     for (let i = 1; i <= 5; i++) {
-      const el = document.getElementById('pre-role' + i);
-      if (el) {
-        avatarCache[i] = el;
-        if (el.complete && el.naturalWidth > 0) {
-          debugLog(`[OK] role${i} ${el.naturalWidth}x${el.naturalHeight} (HTML预加载)`);
-        } else if (el.dataset.err === '1') {
-          debugLog(`[失败] role${i} HTML预加载失败`);
-        } else {
-          debugLog(`[等待] role${i} 加载中...`);
-          el.addEventListener('load', () => debugLog(`[OK] role${i} ${el.naturalWidth}x${el.naturalHeight}`));
-          el.addEventListener('error', () => debugLog(`[失败] role${i}`));
-        }
-      } else {
-        debugLog(`[缺失] pre-role${i} 标签未找到`);
-      }
+      const img = new Image();
+      img.onload = () => { avatarCache[i] = img; debugLog(`[OK] role${i} ${img.naturalWidth}x${img.naturalHeight}`); };
+      img.onerror = () => debugLog(`[失败] role${i} load error`);
+      img.src = base + encodeURI(`image/role/角色${i}.png`);
+      debugLog(`[加载] role${i} ${img.src.substring(0,50)}`);
     }
   }
 
-  // Run after DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initImageCache);
-  } else {
-    initImageCache();
-  }
+  // Run immediately — don't wait for DOM
+  initImageCache();
 
   const PATTERN_LABELS = {
     'rocket': '🚀 火箭', 'bomb': '💣 炸弹', 'single': '单张', 'pair': '对子',
