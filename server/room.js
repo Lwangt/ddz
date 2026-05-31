@@ -165,9 +165,9 @@ class Room {
       }
     }
 
-    // Re-create bot strategies with fresh references
+    // Re-create bot strategies for ALL players (bots use actively, humans use for timeout fallback)
     for (const p of this.players) {
-      if (p.isBot) p.botStrategy = new BotStrategy(p);
+      p.botStrategy = new BotStrategy(p);
     }
     this.lastPlayedCards = [];
     this.lastPattern = null;
@@ -558,99 +558,21 @@ class Room {
   }
 
   executeAutoPlay(player) {
-    // Fresh round auto-play: play the smallest single card
+    // Use bot strategy for smart auto-play (human timeout/disconnect)
     if (this.state !== C.PHASE_PLAYING) return;
     if (this.players[this.currentPlayerIndex] !== player) return;
     if (player.hand.length === 0) return;
-    // Find the smallest card (hand is already sorted by rank)
-    const smallestCard = [player.hand[0]];
-    this.processPlay(player.id, smallestCard);
+    // Ensure player has a bot strategy for fallback
+    if (!player.botStrategy) {
+      const BotStrategy = require('./bot');
+      player.botStrategy = new BotStrategy(player);
+    }
+    this.executeBotPlay(player);
   }
 
   executeAutoPlayOrPass(player) {
-    // Responding to a play: try to find smallest beat, otherwise pass
-    if (this.state !== C.PHASE_PLAYING) return;
-    if (this.players[this.currentPlayerIndex] !== player) return;
-    if (!this.lastPattern) { this.executeAutoPlay(player); return; }
-
-    // Try to find smallest beat
-    const smallestBeat = this.findSmallestBeat(player.hand, this.lastPattern);
-    if (smallestBeat) {
-      this.processPlay(player.id, smallestBeat);
-    } else {
-      this.processPass(player.id);
-    }
-  }
-
-  findSmallestBeat(hand, lastPattern) {
-    const { getRankGroups } = require('./patterns');
-    const groups = getRankGroups(hand);
-
-    const tryBeatSingle = () => {
-      for (const id of hand) {
-        const r = require('./card').getRank(id);
-        if (r > lastPattern.rank) return [id];
-      }
-      return null;
-    };
-
-    const tryBeatPair = () => {
-      const rankMap = new Map();
-      for (const id of hand) {
-        const r = require('./card').getRank(id);
-        if (!rankMap.has(r)) rankMap.set(r, []);
-        rankMap.get(r).push(id);
-      }
-      for (const [r, cards] of [...rankMap.entries()].sort((a, b) => a[0] - b[0])) {
-        if (cards.length >= 2 && r > lastPattern.rank) return cards.slice(0, 2);
-      }
-      return null;
-    };
-
-    const tryBeatTriple = () => {
-      const rankMap = new Map();
-      for (const id of hand) {
-        const r = require('./card').getRank(id);
-        if (!rankMap.has(r)) rankMap.set(r, []);
-        rankMap.get(r).push(id);
-      }
-      for (const [r, cards] of [...rankMap.entries()].sort((a, b) => a[0] - b[0])) {
-        if (cards.length >= 3 && r > lastPattern.rank) return cards.slice(0, 3);
-      }
-      return null;
-    };
-
-    const tryBeatBomb = () => {
-      const rankMap = new Map();
-      for (const id of hand) {
-        const r = require('./card').getRank(id);
-        if (!rankMap.has(r)) rankMap.set(r, []);
-        rankMap.get(r).push(id);
-      }
-      for (const [r, cards] of [...rankMap.entries()].sort((a, b) => a[0] - b[0])) {
-        if (cards.length === 4 && r > lastPattern.rank) return cards;
-      }
-      // Rocket
-      if (hand.includes(52) && hand.includes(53)) return [52, 53];
-      return null;
-    };
-
-    switch (lastPattern.type) {
-      case 'single': return tryBeatSingle();
-      case 'pair': return tryBeatPair() || tryBeatBomb();
-      case 'triple':
-      case 'triple_plus_one':
-      case 'triple_plus_two': return tryBeatTriple() || tryBeatBomb();
-      case 'straight':
-      case 'straight_pairs':
-      case 'airplane':
-      case 'airplane_wing_single':
-      case 'airplane_wing_pair':
-      case 'four_plus_two_single':
-      case 'four_plus_two_pair': return tryBeatBomb();
-      case 'bomb': return tryBeatBomb();
-      default: return null;
-    }
+    // Use bot strategy - it already handles pass vs play decisions
+    this.executeAutoPlay(player);
   }
 
   advanceTurn() {
