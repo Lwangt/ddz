@@ -77,6 +77,13 @@
     </div>
   </div>
 
+  <!-- Preload game images in background while user creates/joins room -->
+  <div style="display:none" aria-hidden="true">
+    <img src="image/bg/bg1.png"><img src="image/bg/bg2.png"><img src="image/bg/bg3.png">
+    <img src="image/bg/bg4.png"><img src="image/bg/bg5.png"><img src="image/bg/bg6.png"><img src="image/bg/bg7.png">
+    <img src="image/role/角色1.png"><img src="image/role/角色2.png"><img src="image/role/角色3.png">
+    <img src="image/role/角色4.png"><img src="image/role/角色5.png">
+  </div>
   <script>fetch('version.txt?'+Date.now()).then(r=>r.text()).then(t=>{if(t.trim())document.title='斗地主 | '+t.trim()}).catch(()=>{})</script>
   <script src="socket.io/socket.io.js"></script>
   <script src="js/socket.js"></script>

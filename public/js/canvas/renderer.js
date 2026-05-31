@@ -22,21 +22,18 @@ const GameRenderer = (() => {
   }
 
   function initImageCache() {
-    const base = window.location.origin + '/ddz/';
-    // Load background images via new Image() — most reliable on mobile
+    // Use relative paths — matches lobby preload, enables browser cache reuse
     for (let i = 1; i <= 7; i++) {
       const img = new Image();
-      img.onload = () => { bgCache[i] = img; debugLog(`[OK] bg${i} ${img.naturalWidth}x${img.naturalHeight}`); };
-      img.onerror = () => debugLog(`[失败] bg${i} load error`);
-      img.src = base + `image/bg/bg${i}.png`;
-      debugLog(`[加载] bg${i} ${img.src.substring(0,60)}`);
+      img.onload = () => { bgCache[i] = img; };
+      img.onerror = () => debugLog(`[失败] bg${i}`);
+      img.src = `image/bg/bg${i}.png`;
     }
     for (let i = 1; i <= 5; i++) {
       const img = new Image();
-      img.onload = () => { avatarCache[i] = img; debugLog(`[OK] role${i} ${img.naturalWidth}x${img.naturalHeight}`); };
-      img.onerror = () => debugLog(`[失败] role${i} load error`);
-      img.src = base + encodeURI(`image/role/角色${i}.png`);
-      debugLog(`[加载] role${i} ${img.src.substring(0,50)}`);
+      img.onload = () => { avatarCache[i] = img; };
+      img.onerror = () => debugLog(`[失败] role${i}`);
+      img.src = `image/role/角色${i}.png`;
     }
   }
 
