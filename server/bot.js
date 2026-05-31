@@ -8,6 +8,14 @@ class BotStrategy {
     this.player = player;
   }
 
+  // ── Mingpai decision ────────────────────────────────────
+
+  decideMingpai() {
+    // Reveal hand if very confident (hand strength >= 80)
+    const strength = this.evaluateHandStrength();
+    return strength >= 80;
+  }
+
   // ── Bidding — improved hand evaluation ───────────────────
 
   decideBid(currentBid) {

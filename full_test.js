@@ -82,6 +82,25 @@ function bidPhase(room) {
       if (room.state === C.PHASE_BIDDING) room.finishBidding();
       resolve();
     }, 300);
+  }).then(() => mingpaiPhase(room));
+}
+
+function mingpaiPhase(room) {
+  return new Promise(async (resolve) => {
+    await waitForState(room, [C.PHASE_MINGPAI, C.PHASE_PLAYING, C.PHASE_FINISHED], 5000);
+    if (room.state !== C.PHASE_MINGPAI) { resolve(); return; }
+    setTimeout(() => {
+      for (const p of room.players) {
+        if (!(p.seatIndex in room.mingpaiResponses)) {
+          const reveal = p.botStrategy ? p.botStrategy.decideMingpai() : false;
+          room.processMingpai(p.id, reveal);
+        }
+      }
+      if (Object.keys(room.mingpaiResponses).length >= 3 && room.state === C.PHASE_MINGPAI) {
+        room.finishMingpai();
+      }
+      resolve();
+    }, 300);
   });
 }
 
@@ -214,6 +233,7 @@ async function main() {
     room2.processBid(p.id, p.isBot ? 0 : 1);
   }
   if (room2.state === 'BIDDING') room2.finishBidding();
+  await mingpaiPhase(room2);
   await new Promise(r => setTimeout(r, 200));
 
   if (room2.state === 'PLAYING') {
@@ -242,6 +262,7 @@ async function main() {
     room3.processBid(p.id, p.isBot ? 0 : 1);
   }
   if (room3.state === 'BIDDING') room3.finishBidding();
+  await mingpaiPhase(room3);
   await new Promise(r => setTimeout(r, 200));
 
   if (room3.state === 'PLAYING') {
@@ -277,6 +298,7 @@ async function main() {
     room4.processBid(p.id, p.isBot ? 0 : 1);
   }
   if (room4.state === 'BIDDING') room4.finishBidding();
+  await mingpaiPhase(room4);
   await new Promise(r => setTimeout(r, 200));
 
   if (room4.state === 'PLAYING') {
@@ -327,6 +349,7 @@ async function main() {
     room6.processBid(p.id, p.isBot ? 0 : 1);
   }
   if (room6.state === 'BIDDING') room6.finishBidding();
+  await mingpaiPhase(room6);
   await new Promise(r => setTimeout(r, 200));
 
   if (room6.state === 'PLAYING') {
@@ -486,7 +509,8 @@ async function main() {
     }
   }
   if (room8.state === 'BIDDING') room8.finishBidding();
-  await new Promise(r => setTimeout(r, 1200));
+  await mingpaiPhase(room8);
+  await new Promise(r => setTimeout(r, 200));
 
   check('叫地主后进入PLAYING', room8.state === C.PHASE_PLAYING, 'state=' + room8.state);
   const landlord8 = room8.players.find(p => p.isLandlord);

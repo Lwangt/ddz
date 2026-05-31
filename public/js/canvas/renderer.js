@@ -90,6 +90,7 @@ const GameRenderer = (() => {
     drawOpponents();
     drawBidResults();
     drawPlayerActions();
+    drawMingpaiReveals();
     drawPlayArea();
     drawBonusCards();
     drawOwnHand();
@@ -579,6 +580,53 @@ const GameRenderer = (() => {
     }
   }
 
+  // ── Mingpai revealed hands ─────────────────────────────
+
+  function drawMingpaiReveals() {
+    const s = gameState;
+    if (!s._mingpaiReveals) return;
+    const sc = Layout.scale();
+    const cw = Layout.cardW(), ch = Layout.cardH();
+
+    for (const player of s.players) {
+      const hand = s._mingpaiReveals[player.seatIndex];
+      if (!hand || hand === false) continue; // false = declined, undefined = no response
+
+      const dispPos = player.seatIndex === s.mySeat ? 0 : (player.seatIndex - s.mySeat + 3) % 3;
+      const smallW = cw * 0.5;
+      const smallH = ch * 0.5;
+      const count = hand.length;
+
+      // Position above/beside the player's area
+      let zone;
+      if (dispPos === 0) zone = Layout.selfActionZone();
+      else if (dispPos === 1) zone = Layout.leftActionZone();
+      else zone = Layout.topActionZone();
+
+      const spacing = Math.min(smallW * 0.35, (zone.w - smallW) / Math.max(count - 1, 1));
+      const totalW = smallW + (count - 1) * spacing;
+      const startX = zone.x + (zone.w - totalW) / 2;
+      const startY = zone.y + 2 * sc;
+
+      // "明牌" label
+      ctx.fillStyle = '#ff1744';
+      ctx.font = `bold ${10 * sc}px "Microsoft YaHei", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.shadowColor = 'rgba(255,23,68,0.8)';
+      ctx.shadowBlur = 6 * sc;
+      ctx.fillText(`🔴 ${player.name} 明牌`, zone.x + zone.w / 2, startY - 2 * sc);
+      ctx.shadowColor = 'transparent';
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
+
+      for (let i = 0; i < count; i++) {
+        CardDrawer.drawCardFace(ctx, hand[i],
+          startX + i * spacing, startY, smallW, smallH, false);
+      }
+    }
+  }
+
   // ── Play area: turn indicator ────────────────────────────
 
   function drawPlayArea() {
@@ -821,7 +869,17 @@ const GameRenderer = (() => {
     const sc = Layout.scale();
     const btns = [];
 
-    if (s.phase === 'BIDDING' && s.myTurn) {
+    if (s.phase === 'MINGPAI' && s.myTurn) {
+      const bW = (area.w - 4 * sc) / 2;
+      btns.push({
+        id: 'mingpai_yes', label: '明牌 (积分×2)', x: area.x, y: area.y,
+        w: bW, h: area.h, type: 'danger', disabled: false
+      });
+      btns.push({
+        id: 'mingpai_no', label: '不明牌', x: area.x + bW + 4 * sc, y: area.y,
+        w: bW, h: area.h, type: 'secondary', disabled: false
+      });
+    } else if (s.phase === 'BIDDING' && s.myTurn) {
       const labels = ['不叫', '1分', '2分', '3分'];
       const types = ['secondary', 'bid', 'primary', 'danger'];
       const bW = (area.w - 9 * sc) / 4;

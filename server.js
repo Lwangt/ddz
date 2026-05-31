@@ -76,6 +76,7 @@ io.on('connection', (socket) => {
   socket.on('leave_room', () => gameManager.leaveRoom(socket));
   socket.on('start_game', () => gameManager.startGame(socket));
   socket.on('bid', (data) => gameManager.processBid(socket, data));
+  socket.on('mingpai', (data) => gameManager.processMingpai(socket, data));
   socket.on('play_cards', (data) => gameManager.processPlay(socket, data));
   socket.on('pass', () => gameManager.processPass(socket));
   socket.on('ready_next', () => gameManager.readyForNext(socket));

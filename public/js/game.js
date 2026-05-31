@@ -63,6 +63,10 @@
     sm.on('bid_turn', onBidTurn);
     sm.on('bid_made', onBidMade);
     sm.on('landlord_determined', onLandlordDetermined);
+    sm.on('mingpai_turn', onMingpaiTurn);
+    sm.on('mingpai_reveal', onMingpaiReveal);
+    sm.on('mingpai_decline', onMingpaiDecline);
+    sm.on('mingpai_result', onMingpaiResult);
     sm.on('your_hand_update', onYourHandUpdate);
     sm.on('redeal_message', onRedealMessage);
     sm.on('turn_start', onTurnStart);
@@ -135,7 +139,7 @@
   }
 
   function onLandlordDetermined(data) {
-    state.phase = 'PLAYING';
+    state.phase = C_PHASE_MINGPAI || 'MINGPAI';
     state.currentBid = data.currentBid;
     state.multiplier = data.multiplier;
 
@@ -143,16 +147,58 @@
     const landlord = state.players.find(p => p.seatIndex === data.landlordSeat);
     if (landlord) landlord.isLandlord = true;
 
-    // Everyone sees bonus cards
     state.bonusCards = data.bonusCards || [];
     state.bidResults = [];
     state.lastPlayedCards = [];
     state.lastPattern = null;
     state.passCount = 0;
+    state._mingpaiReveals = {};
 
     const isMeLandlord = state.mySeat === data.landlordSeat;
     showToast(isMeLandlord ? '你是地主！' : `${data.landlordName} 是地主`, 2000);
   }
+
+  // ── 明牌 handlers ──────────────────────────────────────────
+
+  function onMingpaiTurn(data) {
+    state.phase = 'MINGPAI';
+    state.myTurn = true;
+    clearTurnTimer();
+    state.turnTimeTotal = data.timeout || 8;
+    state.turnTimeLeft = state.turnTimeTotal;
+    startTurnTimer();
+    showToast('是否明牌？明牌后积分翻倍', 2000);
+  }
+
+  function onMingpaiReveal(data) {
+    state._mingpaiReveals[data.seatIndex] = data.hand;
+    if (data.seatIndex !== state.mySeat) {
+      Sound.bid(2);
+    }
+    showToast(`${data.playerName} 选择了明牌！`, 2000);
+  }
+
+  function onMingpaiDecline(data) {
+    state._mingpaiReveals[data.seatIndex] = false;
+    showToast(`${data.playerName} 不叫明牌`, 1200);
+  }
+
+  function onMingpaiResult(data) {
+    state.phase = 'PLAYING';
+    state.myTurn = false;
+    state.multiplier = data.totalMultiplier;
+    clearTurnTimer();
+    if (data.mingpaiMultiplier > 1) {
+      showToast(`有人明牌，倍数翻倍！当前倍数 ×${state.multiplier}`, 2500);
+    }
+  }
+
+  // ── 发送明牌 ─────────────────────────────────────────────
+
+  window.sendMingpai = function(reveal) {
+    SocketManager.emit('mingpai', { reveal });
+    state.myTurn = false;
+  };
 
   function onYourHandUpdate(data) {
     if (data.hand) state.hand = data.hand;
@@ -348,6 +394,10 @@
       state.selectedCards = new Set();
     } else if (btnId === 'hint') {
       autoHint();
+    } else if (btnId === 'mingpai_yes') {
+      window.sendMingpai(true);
+    } else if (btnId === 'mingpai_no') {
+      window.sendMingpai(false);
     } else if (btnId.startsWith('bid_')) {
       const amount = parseInt(btnId.split('_')[1]);
       SocketManager.emit('bid', { amount });

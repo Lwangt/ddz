@@ -265,6 +265,12 @@ class GameManager {
     room.processPlay(socket.id, cardIds);
   }
 
+  processMingpai(socket, { reveal }) {
+    const room = this.getRoomBySocket(socket.id);
+    if (!room) return;
+    room.processMingpai(socket.id, reveal);
+  }
+
   processPass(socket) {
     const room = this.getRoomBySocket(socket.id);
     if (!room) return;

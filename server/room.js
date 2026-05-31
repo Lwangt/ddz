@@ -30,6 +30,10 @@ class Room {
     // Deck
     this.bonusCards = [];
 
+    // Mingpai
+    this.mingpaiResponses = {};
+    this.mingpaiMultiplier = 1;
+
     // Background
     this.currentBg = 0;
 
@@ -364,9 +368,105 @@ class Room {
       });
     }
 
-    // Start playing: landlord goes first
+    // Start 明牌 phase
+    this.mingpaiResponses = {};
+    this.mingpaiMultiplier = 1;
+    setTimeout(() => this.startMingpai(), 600);
+  }
+
+  // ── Mingpai (明牌) ───────────────────────────────────────
+
+  startMingpai() {
+    if (this.state !== C.PHASE_BIDDING && this.state !== C.PHASE_PLAYING) return;
+    this.state = C.PHASE_MINGPAI;
+
+    this.toRoom('mingpai_turn', {
+      timeout: C.MINGPAI_TIMEOUT / 1000,
+      players: this.players.map(p => ({ seatIndex: p.seatIndex, name: p.name })),
+    });
+
+    // Bots auto-decide
+    for (const p of this.players) {
+      if (p.isBot && p.botStrategy) {
+        const delay = 500 + Math.random() * 1000;
+        setTimeout(() => {
+          if (this.state === C.PHASE_MINGPAI) {
+            const reveal = p.botStrategy.decideMingpai();
+            this.processMingpai(p.id, reveal);
+          }
+        }, delay);
+      }
+    }
+
+    // Auto-timeout
+    this.clearBidTimer();
+    this.bidTimer = setTimeout(() => {
+      for (const p of this.players) {
+        if (!(p.seatIndex in this.mingpaiResponses)) {
+          this.processMingpai(p.id, false);
+        }
+      }
+    }, C.MINGPAI_TIMEOUT);
+  }
+
+  processMingpai(socketId, reveal) {
+    const player = this.getPlayer(socketId);
+    if (!player) return;
+    if (this.mingpaiResponses[player.seatIndex] !== undefined) return;
+
+    this.mingpaiResponses[player.seatIndex] = !!reveal;
+
+    if (reveal) {
+      this.mingpaiMultiplier = 2;
+      this.toRoom('mingpai_reveal', {
+        seatIndex: player.seatIndex,
+        playerName: player.name,
+        hand: player.toPrivateJSON().hand,
+      });
+    } else {
+      this.toRoom('mingpai_decline', {
+        seatIndex: player.seatIndex,
+        playerName: player.name,
+      });
+    }
+
+    // Check if all responded
+    if (Object.keys(this.mingpaiResponses).length >= 3) {
+      this.clearBidTimer();
+      setTimeout(() => this.finishMingpai(), 300);
+    }
+  }
+
+  finishMingpai() {
+    if (this.state !== C.PHASE_MINGPAI) return;
+    this.clearBidTimer();
+
+    // Fill missing as declined
+    for (const p of this.players) {
+      if (!(p.seatIndex in this.mingpaiResponses)) {
+        this.mingpaiResponses[p.seatIndex] = false;
+      }
+    }
+
+    // Apply multiplier
+    if (this.mingpaiMultiplier > 1) {
+      this.multiplier *= this.mingpaiMultiplier;
+    }
+
+    this.toRoom('mingpai_result', {
+      reveals: this.players.map(p => ({
+        seatIndex: p.seatIndex,
+        playerName: p.name,
+        revealed: !!this.mingpaiResponses[p.seatIndex],
+      })),
+      mingpaiMultiplier: this.mingpaiMultiplier,
+      totalMultiplier: this.multiplier,
+    });
+
+    // Start playing
+    const landlord = this.players.find(p => p.isLandlord);
     this.state = C.PHASE_PLAYING;
-    this.currentPlayerIndex = landlord.seatIndex;
+    this.currentPlayerIndex = landlord ? landlord.seatIndex : 0;
     this.lastPlayedBy = -1;
     this.lastPlayedCards = [];
     this.lastPattern = null;
